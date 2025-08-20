@@ -22,7 +22,7 @@ import init_funs as initfuns
 
 ##############
 
-def  make_LV1_dotin_and_exec( pkl_fnm ):
+def  make_LV1_dotin_and_exec( pkl_fnm , mod_type ):
     print(' --- making dot_in and dot_sh --- ')  # + Ldir['date_string'])
     
     import init_funs as initfuns
@@ -30,6 +30,13 @@ def  make_LV1_dotin_and_exec( pkl_fnm ):
     PFM = initfuns.get_model_info(pkl_fnm)
     # initialize dict to hold values that we will substitute into the dot_in file.
     D = dict()
+
+    if mod_type == 'hind':
+        D['mod_type']='HINDCAST'
+        D['partition'] = 'fast'
+    else:
+        D['mod_type']='FORECAST'
+        D['partition']= 'fast-hiprio'
 
     # this is where the varinfo.yaml file is located.
     # the original location was 
@@ -80,7 +87,7 @@ def  make_LV1_dotin_and_exec( pkl_fnm ):
     D['dstart'] = str(dt) + 'd0' # this is in the form xxxxx.5 due to 12:00 start time for hycom
 
     # Paths to forcing various file locations
-    D['lv1_grid_dir']      = PFM['lv1_grid_dir']
+    D['lv1_grid_full']     = PFM['lv1_grid_file_full'] 
     D['lv1_run_dir']       = PFM['lv1_run_dir']     
     D['lv1_forc_dir']      = PFM['lv1_forc_dir']   
     D['lv1_his_dir']       = PFM['lv1_his_dir']
@@ -94,13 +101,13 @@ def  make_LV1_dotin_and_exec( pkl_fnm ):
         lv1_ini_dir  = PFM['restart_files_dir']
     else: 
         nrrec        = '0' # '0' for a new solution
+        # nrrec = 0 
         lv1_ini_dir  = PFM['lv1_forc_dir']
-
+    
     ininame     = PFM['lv1_ini_file']  # start from ini file
     D['nrrec']        = nrrec
     D['lv1_ini_file'] = lv1_ini_dir + '/' + ininame
     D['lv1_bc_file']  = PFM['lv1_forc_dir'] + '/' + PFM['lv1_bc_file']    
-
  
     D['vtransform']  = PFM['stretching']['L1','Vtransform']
     D['vstretching'] = PFM['stretching']['L1','Vstretching']
@@ -110,8 +117,24 @@ def  make_LV1_dotin_and_exec( pkl_fnm ):
 
     lv1_infile_local  = 'LV1_forecast_run.in'
     lv1_logfile_local = 'LV1_forecast.log'
-    lv1_sbfile_local  = 'LV1_SLURM.sb' # dont want this anymore! 
-    lv1_shfile_local = 'LV1_openmp.sh'
+
+    # making 'sb' file - sb for swll, sh for rockfish/estuaries
+    dot_in_dir   = '.'
+
+    if PFM['server'] == 'swell': 
+        # use slurm so make an .sb file
+        lv1_sbfile_local  = 'LV1_SLURM.sb'
+        # and identify the blank file to use 
+        if "INTEL" in D['lv1_executable']:
+            blank_sbfile = dot_in_dir +'/' +  'LV1_SLURM_intel_BLANK.sb'
+        else:        
+            blank_sbfile = dot_in_dir +'/' +  'LV1_SLURM_BLANK.sb'
+        
+    if PFM['server'] == 'rockfish': 
+        # just an sh file 
+        lv1_sbfile_local = 'LV1_openmp.sh'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV1_openmp.sh'
     
     D['lv1_infile_local']  = lv1_infile_local
     D['lv1_logfile_local'] = lv1_logfile_local
@@ -122,126 +145,57 @@ def  make_LV1_dotin_and_exec( pkl_fnm ):
     # we assume that we are in the PFM/sdpm_py_util/ directory.
     # might want a check to see if you are here. If not, then
     # cd here?
-    dot_in_dir   = '.'
     blank_infile = dot_in_dir +'/' +  'LV1_BLANK.in'
-    blank_shfile = dot_in_dir + '/' + 'BLANK_LV1_openmp.sh'
 
-    print('this is the blank_infile') 
-    print(blank_infile)
-
-    if PFM['server'] == 'swell': 
-        if D['lv1_executable'] == '/scratch/PFM_Simulations/executables/LV3_romsM_INTEL':
-            blank_sbfile = dot_in_dir +'/' +  'LV1_SLURM_intel_BLANK.sb'
-        else:        
-            blank_sbfile = dot_in_dir +'/' +  'LV1_SLURM_BLANK.sb'
-            
-    elif PFM['server'] == 'rockfish': 
-        blank_shfile = dot_in_dir + '/' + 'BLANK_LV1_openmp.sh'
-
-        # june 12: tbh i dont know if im using the sbfile or shfile when calling things, so set both
-        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV1_openmp.sh'
-        
-        
-        # if D['lv1_executable'] == '/home/vboatwright/boat_roms/realistic_roms/ROMS_realistic.bin':
-        if D['lv1_executable'] == '/home/vboatwright/boat_roms/PFM_dir/simulations/executables/ROMS_realistic.bin':
-            print(' i think reasonable to be here') 
-            # blank_shfile = dot_in_dir +'/' +  'LV1_BLANK.sh'
-        
-        else:        
-            # not what we want 
-            print('not wanting to be here') 
-            blank_sbfile = dot_in_dir +'/' +  'LV1_SLURM_BLANK.sb'
-
-    elif PFM['server'] == 'estuaries': 
-        # use sierra's code as example, though i dont know what the file structure would be on estuaries 
-        blank_sbfile = dot_in_dir +'/' +  'BLANK_LV1_openMPI.sh'
-
-    print('this is the blank sbfile for LV1: ') 
-    print(blank_sbfile)
-    
-        
     print('for this LV1 simulation')
+    print('the grid file used is:')
+    print(D['lv1_grid_full'])
     print('history file made will be:')
     print(D['lv1_his_name_full'])
     print('restart file made will be:')
     print(D['lv1_rst_name_full'])
     print('the ini file used is:')
     print(D['lv1_ini_file'])
-    print('we are using executable:')
+    print('we are using')
     print(D['lv1_executable'])
     
     lv1_infile   = D['lv1_run_dir'] + '/' + lv1_infile_local
+    # for rockfish, this sbfile is really an sh file 
+    lv1_sbfile   = D['lv1_run_dir'] + '/' + lv1_sbfile_local
 
-    # again, prep for different servers 
+    print('this is the blank_infile') 
+    print(blank_infile)
 
-    if PFM['server'] == 'swell':
-        lv1_sbfile = D['lv1_run_dir'] + '/' + lv1_sbfile_local
-
-    elif PFM['server'] == 'estuaries':
-        lv1_sbfile = D['lv1_run_dir'] + '/' + lv1_shfile_local # SH file not sb
-
-    elif PFM['server'] == 'rockfish': 
-        print('we are in the rockfish server particulars') 
-        
-        lv1_sbfile = D['lv1_run_dir'] + '/' + lv1_shfile_local # SH file not sb
-
-    print('this is the sbfile for LV1: ') 
-    print(lv1_sbfile)
     
+    ## create lv1_infile_local .in ##########################
+    f  = open( blank_infile,'r')
+    f2 = open( lv1_infile,'w')   # change this name to be LV1_forecast_yyyymmddd_HHMMZ.in
+    for line in f:
+        for var in D.keys():
+            if '$'+var+'$' in line:
+                line2 = line.replace('$'+var+'$', str(D[var]))
+                line = line2 # needed because we loop over all "var" for line
+            else:
+                line2 = line
+        f2.write(line2)
 
-    if PFM['server'] == 'swell':
-        ## create slurm lv1 .sb file  ##########################
-        f  = open( blank_sbfile,'r')
-        f2 = open( lv1_sbfile,'w')   # change this name to be LV1_forecast_yyyymmddd_HHMMZ.in
-        for line in f:
-            for var in D.keys():
-                if '$'+var+'$' in line:
-                    line2 = line.replace('$'+var+'$', str(D[var]))
-                    line = line2 # needed because we loop over all "var" for line
-                else:
-                    line2 = line
-            f2.write(line2)
+    f.close()
+    f2.close()
 
-        f.close()
-        f2.close()
-        
-    elif PFM['server'] == 'estuaries':
-        #BLANK_LV1_sh = PFM['BLANK_LV1_sh']
-        #lv1_openmp = PFM['lv1_openmp']
-        # these have been changed to be the correct .sh file to run romsM
-        f  = open( blank_sbfile,'r')
-        f2 = open( lv1_sbfile,'w')   
-        for line in f:
-            for var in D.keys():
-                if '$'+var+'$' in line:
-                    line2 = line.replace('$'+var+'$', str(D[var]))
-                    line = line2 # needed because we loop over all "var" for line
-                else:
-                    line2 = line
-            f2.write(line2)
+    ## create lv1 .sh / .sb file  ##########################
+    f  = open( blank_sbfile,'r')
+    f2 = open( lv1_sbfile,'w')   # change this name to be LV1_forecast_yyyymmddd_HHMMZ.in
+    for line in f:
+        for var in D.keys():
+            if '$'+var+'$' in line:
+                line2 = line.replace('$'+var+'$', str(D[var]))
+                line = line2 # needed because we loop over all "var" for line
+            else:
+                line2 = line
+        f2.write(line2)
 
-        f.close()
-        f2.close()
-
-    elif PFM['server'] == 'rockfish':
-        #BLANK_LV1_sh = PFM['BLANK_LV1_sh']
-        #lv1_openmp = PFM['lv1_openmp']
-        #make the correct .sh file to run romsO (aka ROMS_realistic.bin) 
-        
-        f  = open( blank_sbfile,'r')
-        f2 = open( lv1_sbfile,'w')   
-        for line in f:
-            for var in D.keys():
-                if '$'+var+'$' in line:
-                    line2 = line.replace('$'+var+'$', str(D[var]))
-                    line = line2 # needed because we loop over all "var" for line
-                else:
-                    line2 = line
-            f2.write(line2)
-
-        f.close()
-        f2.close()
-
+    f.close()
+    f2.close()
 
 
 
@@ -329,6 +283,8 @@ def  make_LV1_dotin_and_SLURM( pkl_fnm , mod_type ):
         nrrec        = '0' # '0' for a new solution
         lv1_ini_dir  = PFM['lv1_forc_dir']
 
+    print('idk what nrrec is but this is the value:')
+    print(nrrec)
     ininame     = PFM['lv1_ini_file']  # start from ini file
     D['nrrec']        = nrrec
     D['lv1_ini_file'] = lv1_ini_dir + '/' + ininame
@@ -505,7 +461,7 @@ def  make_LV2_dotin_and_exec( pkl_fnm ):
     D['dstart'] = str(dt) + 'd0' # this is in the form xxxxx.5 due to 12:00 start time for hycom
 
     # Paths to forcing various file locations
-    D['lv2_grid_dir'] = PFM['lv2_grid_dir']
+    D['lv2_grid_full'] = PFM['lv2_grid_file_full'] 
     D['lv2_run_dir']  = PFM['lv2_run_dir']     
     D['lv2_forc_dir'] = PFM['lv2_forc_dir']   
     D['lv2_his_dir']  = PFM['lv2_his_dir']
@@ -536,9 +492,27 @@ def  make_LV2_dotin_and_exec( pkl_fnm ):
 
     lv2_infile_local       = 'LV2_forecast_run.in'
     lv2_logfile_local      = 'LV2_forecast.log'
-    lv2_sbfile_local       = 'LV2_SLURM.sb'
-    # for rockfish / estuaries server, you'll be using .sh file: 
-    lv2_shfile_local = 'LV2_openmp.sh'
+
+    # identify blank .in file
+    dot_in_dir   = '.'
+    blank_infile = dot_in_dir +'/' +  'LV2_BLANK.in'
+    
+    # making 'sb' file - sb for swll, sh for rockfish/estuaries
+    if PFM['server'] == 'swell': 
+        # use slurm so make an .sb file
+        lv2_sbfile_local  = 'LV2_SLURM.sb'
+        # and identify the blank file to use 
+        if "INTEL" in D['lv2_executable']:
+            blank_sbfile = dot_in_dir +'/' +  'LV2_SLURM_intel_BLANK.sb'
+        else:        
+            blank_sbfile = dot_in_dir +'/' +  'LV2_SLURM_BLANK.sb'
+        
+    if PFM['server'] == 'rockfish': 
+        # just an sh file 
+        lv2_sbfile_local = 'LV2_openmp.sh'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV2_openmp.sh'
+
 
     D['lv2_infile_local']  = lv2_infile_local
     D['lv2_logfile_local'] = lv2_logfile_local
@@ -556,46 +530,11 @@ def  make_LV2_dotin_and_exec( pkl_fnm ):
     print(D['lv2_ini_file'])
     print('we are using')
     print(D['lv2_executable'])
-
-
-    dot_in_dir   = '.'
-    blank_infile = dot_in_dir +'/' +  'LV2_BLANK.in'
-
-
-    if PFM['server'] == 'swell': 
-        blank_infile = dot_in_dir +'/' +  'LV2_BLANK.in'
-        if D['lv2_executable'] == '/scratch/PFM_Simulations/executables/LV3_romsM_INTEL':
-            blank_sbfile = dot_in_dir +'/' +  'LV2_SLURM_intel_BLANK.sb'
-        else:        
-            blank_sbfile = dot_in_dir +'/' +  'LV2_SLURM_BLANK.sb'
-            
-    elif PFM['server'] == 'rockfish': 
-        # june 26: i'm pretty sure we are calling the blank_sbfile even though i was trying to rename these things ... 
-        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV2_openmp.sh'
-        
-        if D['lv2_executable'] == '/home/vboatwright/boat_roms/PFM_dir/simulations/executables/ROMS_realistic.bin':
-            print(' i think reasonable to be here') 
-        
-        else:        
-            print('not wanting to be here') 
-            blank_sbfile = dot_in_dir +'/' +  'LV2_SLURM_BLANK.sb'
-
-    elif PFM['server'] == 'estuaries': 
-        # use sierra's code as example, though i dont know what the file structure would be on estuaries 
-        blank_sbfile = dot_in_dir +'/' +  'BLANK_LV2_openMPI.sh'
-        
-
-    lv2_infile   = D['lv2_run_dir'] + '/' + lv2_infile_local
-    # make sure to change this sbfile 
-    # lv2_sbfile   = D['lv2_run_dir'] + '/' + lv2_sbfile_local
-    lv2_sbfile   = D['lv2_run_dir'] + '/' + lv2_shfile_local
-        
-    print('this is the blank sbfile for LV2: ') 
-    print(blank_sbfile)
-
-    print('this is the sbfile for LV2: ') 
-    print(lv2_sbfile)
     
+    lv2_infile   = D['lv2_run_dir'] + '/' + lv2_infile_local
+    lv2_sbfile   = D['lv2_run_dir'] + '/' + lv2_sbfile_local
+
+
     ## create lv2_infile_local .in ##########################
     f  = open( blank_infile,'r')
     f2 = open( lv2_infile,'w')   # change this name to be LV2_forecast_yyyymmddd_HHMMZ.in
@@ -612,9 +551,7 @@ def  make_LV2_dotin_and_exec( pkl_fnm ):
     f2.close()
 
 
-    ## create slurb lv2 .sb file  ##########################
-    # this is actually creating the .sh file but we are leaving it named blank_sbfile! 
-    
+    ## create slurb lv2 .sh/.sb file  ##########################
     f  = open( blank_sbfile,'r')
     f2 = open( lv2_sbfile,'w')   # change this name to be LV2_forecast_yyyymmddd_HHMMZ.in
     for line in f:
@@ -628,10 +565,6 @@ def  make_LV2_dotin_and_exec( pkl_fnm ):
 
     f.close()
     f2.close()
-
-
-
-
 
 
 
@@ -900,7 +833,7 @@ def  make_LV3_dotin_and_exec( pkl_fnm ):
     D['dstart'] = str(dt) + 'd0' # this is in the form xxxxx.5 due to 12:00 start time for hycom
 
     # Paths to forcing various file locations
-    D['lv3_grid_dir'] = PFM['lv3_grid_dir']
+    D['lv3_grid_full'] = PFM['lv3_grid_file_full']
     D['lv3_run_dir']  = PFM['lv3_run_dir']     
     D['lv3_forc_dir'] = PFM['lv3_forc_dir']   
     D['lv3_his_dir']  = PFM['lv3_his_dir']
@@ -933,10 +866,27 @@ def  make_LV3_dotin_and_exec( pkl_fnm ):
     
     lv3_infile_local       = 'LV3_forecast_run.in'
     lv3_logfile_local      = 'LV3_forecast.log'
-    lv3_sbfile_local       = 'LV3_SLURM.sb'
-    # for rockfish/estuaries server, use the shfile 
-    lv3_shfile_local       = 'LV3_openmp.sh'
+
+    # identify blank .in file
+    dot_in_dir   = '.'
+    blank_infile = dot_in_dir +'/' +  'LV3_BLANK.in'
     
+    # making 'sb' file - sb for swll, sh for rockfish/estuaries
+    if PFM['server'] == 'swell': 
+        # use slurm so make an .sb file
+        lv3_sbfile_local  = 'LV3_SLURM.sb'
+        # and identify the blank file to use 
+        if "INTEL" in D['lv3_executable']:
+            blank_sbfile = dot_in_dir +'/' +  'LV3_SLURM_intel_BLANK.sb'
+        else:        
+            blank_sbfile = dot_in_dir +'/' +  'LV3_SLURM_BLANK.sb'
+        
+    if PFM['server'] == 'rockfish': 
+        # just an sh file 
+        lv3_sbfile_local = 'LV3_openmp.sh'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV3_openmp.sh'
+        
     D['lv3_infile_local']  = lv3_infile_local
     D['lv3_logfile_local'] = lv3_logfile_local
 
@@ -951,41 +901,11 @@ def  make_LV3_dotin_and_exec( pkl_fnm ):
     print(D['lv3_ini_file'])
     print('we are using')
     print(D['lv3_executable'])
-    print('grid file used is: ')
-    print(D['lv3_grid_dir'] ) 
-    print('check out the PFM to see grid files: ')
-    print(PFM)
-
-    
-    dot_in_dir   = '.'
-    blank_infile = dot_in_dir +'/' +  'LV3_BLANK.in'
-
-    # here, decide how to write the sh/sb file 
-
-    if PFM['server'] == 'swell': 
-        if D['lv3_executable'] == '/scratch/PFM_Simulations/executables/LV3_romsM_INTEL':
-            blank_sbfile = dot_in_dir +'/' +  'LV3_SLURM_intel_BLANK.sb'
-        else:        
-            blank_sbfile = dot_in_dir +'/' +  'LV3_SLURM_BLANK.sb'
-            
-    elif PFM['server'] == 'rockfish': 
-        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV3_openmp.sh'
-
-    elif PFM['server'] == 'estuaries': 
-        # use sierra's code as example, though i dont know what the file structure would be on estuaries 
-        blank_sbfile = dot_in_dir +'/' +  'BLANK_LV3_openMPI.sh'
 
         
     lv3_infile   = D['lv3_run_dir'] + '/' + lv3_infile_local
-    # change to shfile -- used to be + lv3_sbfile_local 
-    lv3_sbfile   = D['lv3_run_dir'] + '/' + lv3_shfile_local
+    lv3_sbfile   = D['lv3_run_dir'] + '/' + lv3_sbfile_local
 
-    print('this is the blank sbfile for LV3: ') 
-    print(blank_sbfile)
-    print('this is the sbfile for LV3: ') 
-    print(lv3_sbfile)
-
-    
     ## create lv3_infile_local .in ##########################
     f  = open( blank_infile,'r')
     f2 = open( lv3_infile,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
@@ -1002,7 +922,6 @@ def  make_LV3_dotin_and_exec( pkl_fnm ):
     f2.close()
 
     ## create slurb lv3 .sb file  ##########################
-    # this is actually creating the .sh file but we are leaving it named blank_sbfile! 
     f  = open( blank_sbfile,'r')
     f2 = open( lv3_sbfile,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
     for line in f:
@@ -1016,7 +935,6 @@ def  make_LV3_dotin_and_exec( pkl_fnm ):
 
     f.close()
     f2.close()
-
 
 
 

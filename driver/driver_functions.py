@@ -126,6 +126,9 @@ def run_hind_LV1(t1str,pkl_fnm):
     t01 = datetime.now()
     lv1_use_restart = MI['lv1_use_restart']
 
+    print('in run_hind_LV1: what is the use_restart setting? ') 
+    print(lv1_use_restart)
+
     ocnIC_pckl = MI['lv1_forc_dir'] + '/' + MI['lv1_ocnIC_tmp_pckl_file']
     if lv1_use_restart==0:
         print('going to save OCN_IC to a pickle file: ' + ocnIC_pckl)
@@ -149,6 +152,9 @@ def run_hind_LV1(t1str,pkl_fnm):
         ret4 = subprocess.run(cmd_list)     
         os.chdir('../driver')
         print('OCN IC nc data saved, correctly? ' + str(ret4.returncode) + ' (0=yes)')
+
+        # lets check where it saved: 
+        print(f'ic file out is: {ic_file_out}')
 
         print('done makeing IC file.')
         dt_ic = []
@@ -296,7 +302,7 @@ def run_hind_LV1(t1str,pkl_fnm):
 
     if server == 'rockfish': 
         print('driver_run_forecast_LV1: making .in and .sh...')
-        runfuns.make_LV1_dotin_and_exec( pkl_fnm )
+        runfuns.make_LV1_dotin_and_exec( pkl_fnm , 'hind'  )
         running_method = 'bash'
 
     print('...done')

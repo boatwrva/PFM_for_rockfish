@@ -157,7 +157,8 @@ def print_initial_model_info(pkl_fnm):
     dtstr = str(MI['forecast_days'])
     nsims = len(MI['start_times_str'])
     lvlstr = ', '.join(MI['levels_to_run'])
-
+    restart_method = str(MI['lv1_use_restart'])
+    
     nn = 60 # total spaces
     print(f"{'-'*nn}")
     print(f"{'Model Set Up' : ^60}")
@@ -171,6 +172,7 @@ def print_initial_model_info(pkl_fnm):
     print(f"{'atm model      : ' + MI['atm_model'] : <60}")
     print(f"{'ocean_model    : ' + MI['ocn_model'] : <60}")
     print(f"{'running levels : ' + lvlstr : <60}")
+    print(f"{'restart method : ' + restart_method : <60}")
 
 def determine_hycom_foretime():
     PFM=get_PFM_info()

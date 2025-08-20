@@ -301,8 +301,8 @@ def create_model_info_dict():
     NN['L3','ntilei'] = 12    # 6 number of tiles in I-direction
     NN['L3','ntilej'] = 30    # 18 number of tiles in J-direction
     
-    NN['L3','ntilei'] = 3    # originally 12 for swell ; for rockfish = 3
-    NN['L3','ntilej'] = 8    # originally 30 for swell; for rockfish testing = 8
+    NN['L3','ntilei'] = 4    # originally 12 for swell ; for rockfish = 3
+    NN['L3','ntilej'] = 12    # originally 30 for swell; for rockfish testing = 8
 
     NN['L3','np'] = NN['L3','ntilei'] * NN['L3','ntilej'] # total number of processors
     NN['L3','nnodes'] = int( NN['L3','np'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm!
@@ -500,7 +500,11 @@ def create_model_info_dict():
     PFM['restart_files_dir'] =  pfm_root_dir + 'restart_data' 
 
     # Matt's code uses restarts? 
+
+    # default should be to use a restart
+    # then, if there is no file for the right day, then it should make an IC file 
     
+    '''
     # right now there are restarts from 2024-10-12 to 2024-10-19
     PFM['lv1_use_restart']         = 1 # use_restart
     PFM['lv2_use_restart']         = 1
@@ -510,13 +514,13 @@ def create_model_info_dict():
     PFM['lv4_swan_use_rst']        = 1
     '''
     # but i want to start from nothing. 
+    # should start with zeros and then start using the restart files afterwards 
     PFM['lv1_use_restart']         = 0 # use_restart
     PFM['lv2_use_restart']         = 0
     PFM['lv3_use_restart']         = 0
     PFM['lv4_use_restart']         = 0
     #PFM['lv4_swan_use_rst']        = 0
     PFM['lv4_swan_use_rst']        = 1
-    '''
     
     # now do the timing information
     start_time = datetime.now()
