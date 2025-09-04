@@ -431,7 +431,7 @@ def create_model_info_dict():
     # PFM['lv2_executable']          = 'LV3_romsM_INTEL'
     # PFM['lv3_executable']          = 'LV3_romsM_INTEL'
 
-    # currently [June 5 2025] do not have an existing realistic with tides ... 
+    # currently [June 5 2025] do not have an existing realistic with tides executable ... 
     PFM['lv1_executable']          = 'ROMS_realistic.bin'
     PFM['lv2_executable']          = 'ROMS_realistic.bin'
     PFM['lv3_executable']          = 'ROMS_realistic.bin'

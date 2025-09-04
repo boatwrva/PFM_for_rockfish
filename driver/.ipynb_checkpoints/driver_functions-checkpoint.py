@@ -323,6 +323,7 @@ def run_hind_LV1(t1str,pkl_fnm):
 def run_hind_LV2(t1str,pkl_fnm):
     import init_funs as initfuns
 
+
     level = 2
     MI = initfuns.get_model_info(pkl_fnm)
     t1 = datetime.strptime(t1str,'%Y%m%d%H')
@@ -344,6 +345,15 @@ def run_hind_LV2(t1str,pkl_fnm):
     dt_atm = []
     dt_atm.append(t02-t01)
 
+    
+    # september 4: we want this to break after 20231013 - 1014 because we need to investigate the .in file for LV1 
+    if MI['sim_time_1'] == '2024101300': 
+        # want to quit 
+        try: 
+            print(unknown_variable)
+        except: 
+            sys.exit(1)
+            
     # fn_out is the name of the atm.nc file used by roms
     fn_atm_out = MI['lv2_forc_dir'] + '/' + MI['lv2_atm_file'] # LV1 atm forcing filename
     print('we are now saving ATM LV2 to ' + fn_atm_out + ' ...')
