@@ -105,6 +105,8 @@ def nam_grabber_hind(cmd):
 
 def get_nam_hindcast_grb2s_v2(t1str,t2str,pkl_fnm):
     _, l2, cmd_list0, _ = get_nam_hindcast_filelists(t1str,t2str,pkl_fnm)
+    print(l2)
+    
     # check and see if the grb2 files are already there?
     fes = [] # a list of 0 (dont have) or 1 (have)
     for fn in l2:

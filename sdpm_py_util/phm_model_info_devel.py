@@ -72,7 +72,7 @@ def create_model_info_dict():
     PFM['server'] = 'rockfish'
     
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
-        sim_start_time = '2024101100' # the simulation start time is in yyyymmddhh format
+        sim_start_time = '2024101300' # the simulation start time is in yyyymmddhh format
         # 2024101100 is the 1st day of hycom with tides hycom data.
         sim_end_time   = '2024102300' # this is the very last time of the full simulation
         PFM['forecast_days'] = 1.0 # for now we do 1 day sub simulations
@@ -504,7 +504,7 @@ def create_model_info_dict():
     # default should be to use a restart
     # then, if there is no file for the right day, then it should make an IC file 
     
-    '''
+
     # right now there are restarts from 2024-10-12 to 2024-10-19
     PFM['lv1_use_restart']         = 1 # use_restart
     PFM['lv2_use_restart']         = 1
@@ -521,6 +521,8 @@ def create_model_info_dict():
     PFM['lv4_use_restart']         = 0
     #PFM['lv4_swan_use_rst']        = 0
     PFM['lv4_swan_use_rst']        = 1
+
+    '''
     
     # now do the timing information
     start_time = datetime.now()
