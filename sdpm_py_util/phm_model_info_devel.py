@@ -74,7 +74,7 @@ def create_model_info_dict():
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
         sim_start_time = '2024101300' # the simulation start time is in yyyymmddhh format
         # 2024101100 is the 1st day of hycom with tides hycom data.
-        sim_end_time   = '2024102300' # this is the very last time of the full simulation
+        sim_end_time   = '2024101300' # this is the very last time of the full simulation
         PFM['forecast_days'] = 1.0 # for now we do 1 day sub simulations
         # set the simulation end time. An integer number of days past the start time
         # We will loop over days until we get to this time.
@@ -94,10 +94,13 @@ def create_model_info_dict():
         PFM['atm_hind_dir'] =  forcing_dir+'nam_grb2'
         atm_model = 'nam_analysis'
         PFM['atm_dt_hr'] = 3
-        
+
         # Matt sets the server here: 
         # PFM['server'] = 'swell'
-        
+
+        PFM['qtj_obs_fname_full'] = pfm_root_dir + 'river_data/IBWC_Qtrje_custom.csv'
+
+
     else:
         # hycom_new is the only forecast option
         ocn_model = 'hycom_new' # worked with 'hycom' but that is now (9/13/24) depricated      
@@ -506,15 +509,6 @@ def create_model_info_dict():
     
 
     # right now there are restarts from 2024-10-12 to 2024-10-19
-    PFM['lv1_use_restart']         = 1 # use_restart
-    PFM['lv2_use_restart']         = 1
-    PFM['lv3_use_restart']         = 1
-    PFM['lv4_use_restart']         = 1
-    #PFM['lv4_swan_use_rst']        = 0
-    PFM['lv4_swan_use_rst']        = 1
-    '''
-    # but i want to start from nothing. 
-    # should start with zeros and then start using the restart files afterwards 
     PFM['lv1_use_restart']         = 0 # use_restart
     PFM['lv2_use_restart']         = 0
     PFM['lv3_use_restart']         = 0
@@ -522,8 +516,6 @@ def create_model_info_dict():
     #PFM['lv4_swan_use_rst']        = 0
     PFM['lv4_swan_use_rst']        = 1
 
-    '''
-    
     # now do the timing information
     start_time = datetime.now()
 
