@@ -12,8 +12,6 @@ from datetime import datetime, timezone, timedelta
 import grid_functions as grdfuns
 import numpy as np
 
-# for rockfish, we will need to change from slurm to ... mpiexec 
-
 def slurm_format_minutes(mins):
    days = mins // (24*60)
    hours = (mins % (24*60)) // 60
@@ -52,29 +50,18 @@ def create_model_info_dict():
 
     #run_type = 'forecast' # this is the switch to go from forecasting to hindcasting...
 
-    # pfm_dir = '/scratch/PFM_Simulations/' # this stays fixed for Grids and executables
+    pfm_dir = '/scratch/PFM_Simulations/' # this stays fixed for Grids and executables
                                          # both forecasting and hindcasting use the same ones.
-    
-    pfm_dir = '/home/vboatwright/boat_roms/PFM_dir/simulations/'
-    forcing_dir = '/home/vboatwright/boat_roms/PFM_dir/model_forcing/'
-    driver_dir = '/home/vboatwright/boat_roms/PFM_dir/PFM_for_rockfish/driver/'
-
-    
     if run_type == 'forecast':
-        # this probably doesn't exist 
        pfm_root_dir = '/scratch/PFM_Simulations/'       
     else:
-       pfm_root_dir = pfm_dir 
+       pfm_root_dir = '/scratch/PHM_Simulations/'       
    
     PFM = dict()
-    
-    # identify server
-    PFM['server'] = 'rockfish'
-    
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
-        sim_start_time = '2024101300' # the simulation start time is in yyyymmddhh format
+        sim_start_time = '2024101700' # the simulation start time is in yyyymmddhh format
         # 2024101100 is the 1st day of hycom with tides hycom data.
-        sim_end_time   = '2024101300' # this is the very last time of the full simulation
+        sim_end_time   = '2024101900' # this is the very last time of the full simulation
         PFM['forecast_days'] = 1.0 # for now we do 1 day sub simulations
         # set the simulation end time. An integer number of days past the start time
         # We will loop over days until we get to this time.
@@ -87,24 +74,15 @@ def create_model_info_dict():
         # sim_time_1 is the inital time of the sub simulation
         # sim_time_2 is the last time of the sub simulation 
         # we loop through levels_to_run
-        PFM['levels_to_run'] = ['LV1','LV2','LV3']
+        PFM['levels_to_run'] = ['LV1','LV2','LV3','LV4']
         ocn_model = 'hycom_hind_wtide' # _wtide indicates using the new (>20241010) hycom
-        
-        # PFM['atm_hind_dir'] = '/dataSIO/PHM_Simulations/raw_download/nam_grb2'
-        PFM['atm_hind_dir'] =  forcing_dir+'nam_grb2'
+        PFM['atm_hind_dir'] = '/dataSIO/PHM_Simulations/raw_download/nam_grb2'
         atm_model = 'nam_analysis'
         PFM['atm_dt_hr'] = 3
-
-        # Matt sets the server here: 
-        # PFM['server'] = 'swell'
-
-        PFM['qtj_obs_fname_full'] = pfm_root_dir + 'river_data/IBWC_Qtrje_custom.csv'
-        # victoria will have to define this 
-	print('victoria needs to download and re-define path for Q_tj observations .csv file') 
-	PFM['qtj_obs_fname_full'] = '/dataSIO/PHM_Simulations/raw_download/qtj_obs_data/qtj_raw_20200101_20250901.csv'
+        PFM['server'] = 'swell'
+        PFM['qtj_obs_fname_full'] = '/dataSIO/PHM_Simulations/raw_download/qtj_obs_data/qtj_raw_20200101_20250901.csv'
         PFM['pb_time_switch'] = datetime(2025,4,1)
         PFM['nwm_dir'] = '/dataSIO/PHM_Simulations/raw_download/nwm_files/'
-
     else:
         # hycom_new is the only forecast option
         ocn_model = 'hycom_new' # worked with 'hycom' but that is now (9/13/24) depricated      
@@ -113,11 +91,11 @@ def create_model_info_dict():
         add_tides=0 # the new version of hycom has tides, we don't need to add them
 
     PFM['executable_dir'] = pfm_dir + 'executables/'   # we will not make copies of executables and 
-    pfm_grid_dir =  pfm_dir +  'grids'                 # grids. PHM will use the ones in pfm_dir
-    lv1_root_dir =  pfm_root_dir +  'LV1/'
-    lv2_root_dir =  pfm_root_dir +  'LV2/'
-    lv3_root_dir =  pfm_root_dir +  'LV3/'
-    lv4_root_dir =  pfm_root_dir +  'LV4/'
+    pfm_grid_dir =  pfm_dir +  'Grids'                 # grids. PHM will use the ones in pfm_dir
+    lv1_root_dir =  pfm_root_dir +  'LV1_Forecast/'
+    lv2_root_dir =  pfm_root_dir +  'LV2_Forecast/'
+    lv3_root_dir =  pfm_root_dir +  'LV3_Forecast/'
+    lv4_root_dir =  pfm_root_dir +  'LV4_Forecast/'
 
     lv1_run_dir  = lv1_root_dir + 'Run'
     lv1_his_dir  = lv1_root_dir + 'His'
@@ -166,25 +144,18 @@ def create_model_info_dict():
     PFM['lv4_river_file'] = 'LV4_river.nc'    # for PFM. overwritten below for PHM.
 
 
-    # grid file locations
+# grid file locations
     lv1_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV1_rx020_hmask.nc'
     lv2_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV2_rx020.nc'
-    # switch back to the SD-TJ grid to see if LV3 works with that grid 
-    # lv3_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV3_rx020.nc'
-    # editing LV3 grid to be the LPL grid: 
-    lv3_grid_file = str(pfm_grid_dir) + '/GRID_LV3_LPL_rx020.nc'
+    lv3_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV3_rx020.nc'
     lv4_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV4_mss_oct2024.nc'
 
-    
     PFM['lv1_grid_file_full'] = lv1_grid_file
     PFM['lv2_grid_file_full'] = lv2_grid_file
     PFM['lv3_grid_file_full'] = lv3_grid_file
     PFM['lv4_grid_file_full'] = lv4_grid_file
 
-    print('we got to the grid files') 
-    print(f'grid file is: {PFM['lv3_grid_file_full']}')
 
-    
     # atm options for run_type = 'forecast' are: nam_nest, gfs, gfs_1hr, ecmwf
     if run_type == 'forecast':
         atm_model = 'ecmwf'
@@ -210,10 +181,8 @@ def create_model_info_dict():
         if atm_model == 'ecmwf':
             PFM['forecast_days'] = 5.0 #is the target 
             PFM['atm_dt_hr'] = 1
-
-    print('got to atmo forcing') 
     
-    PFM['ecmwf_dir'] = forcing_dir+'ecmwf_data/'
+    PFM['ecmwf_dir'] = '/scratch/PFM_Simulations/ecmwf_data/'
     PFM['ecmwf_all_pkl_name'] = 'ecmwf_all.pkl'
     PFM['ecmwf_pkl_roms_vars'] = 'ecmwf_roms_vars.pkl'
     PFM['ecmwf_pkl_on_roms_grid'] = 'ecmwf_on_romsgrid.pkl'
@@ -260,25 +229,19 @@ def create_model_info_dict():
     SS['L4','TCLINE']      = 3.5                    # critical depth (m)
     SS['L4','hc']          = 3.5 
 
-    LLB = dict()   
+    LLB = dict()
     LLB['L1'] = get_llbox(lv1_grid_file)
     LLB['L2'] = get_llbox(lv2_grid_file)
     LLB['L3'] = get_llbox(lv3_grid_file)
     LLB['L4'] = get_llbox(lv4_grid_file)
 
 
-    print('got to the gridding') 
-    
 # gridding info make sure ntilei * ntilej is a multiple of 36. that's how many cores per node on swell
     NN=dict() 
     NN['L1','Lm']  = 251     # Lm in input file
     NN['L1','Mm']  = 388     # Mm in input file
     NN['L1','ntilei'] = 9    # 6 number of tiles in I-direction
     NN['L1','ntilej'] = 24   # 18 number of tiles in J-direction
-
-    NN['L1','ntilei'] = 3    # changed for rockfish testing --> 3 number of tiles in I-direction
-    NN['L1','ntilej'] = 8   # changed for rockfish testing --> 8 number of tiles in J-direction
-
     NN['L1','np'] = NN['L1','ntilei'] * NN['L1','ntilej'] # total number of processors
     NN['L1','nnodes'] =  int( NN['L1','np'] / 36 )  # 3 number of nodes to be used.  not for .in file but for slurm!
 
@@ -286,31 +249,13 @@ def create_model_info_dict():
     NN['L2','Mm']  = 396     # Mm in input file
     NN['L2','ntilei'] = 9    # 6 number of tiles in I-direction
     NN['L2','ntilej'] = 24   # 18 number of tiles in J-direction
-
-    NN['L2','ntilei'] = 3    # changed for rockfish testing, was originally 9 tiles in I-direction
-    NN['L2','ntilej'] = 8   # changed for rockfish testing, was originally 24 tiles in J-direction
-
     NN['L2','np'] = NN['L2','ntilei'] * NN['L2','ntilej'] # total number of processors
     NN['L2','nnodes'] = int( NN['L2','np'] / 36 )  # 3 number of nodes to be used.  not for .in file but for slurm!
 
-    # set run location
-    model_location = 'LPL' 
-    if model_location == 'LPL': 
-        print('LPL grid coordinates')
-        NN['L3','Lm']  = 249     # Lm in input file
-        NN['L3','Mm']  = 474     # Mm in input file
-
-    if model_location == 'SDTJ':     
-        print('SD - TJ grid coordinates')
-        NN['L3','Lm']  = 249     # Lm in input file
-        NN['L3','Mm']  = 411     # Mm in input file
-
+    NN['L3','Lm']  = 249     # Lm in input file
+    NN['L3','Mm']  = 411     # Mm in input file
     NN['L3','ntilei'] = 12    # 6 number of tiles in I-direction
     NN['L3','ntilej'] = 30    # 18 number of tiles in J-direction
-    
-    NN['L3','ntilei'] = 4    # originally 12 for swell ; for rockfish = 3
-    NN['L3','ntilej'] = 12    # originally 30 for swell; for rockfish testing = 8
-
     NN['L3','np'] = NN['L3','ntilei'] * NN['L3','ntilej'] # total number of processors
     NN['L3','nnodes'] = int( NN['L3','np'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm!
 
@@ -374,9 +319,6 @@ def create_model_info_dict():
     OP['L4','rst_interval'] = 0.25  # how often in days, a restart file is made. 
 
     PFM['run_type'] = run_type
-    print(run_type)
-
-    print('set environmemnts')
 
     # first the environment
     PFM['lv1_run_dir']  = lv1_run_dir
@@ -411,13 +353,11 @@ def create_model_info_dict():
     PFM['lv4_model']     = lv4_model
 
     if PFM['run_type'] == 'forecast':
-        # this shouldn't exist
         PFM['hycom_data_dir'] = pfm_root_dir + 'hycom_data/'
         PFM['cdip_data_dir'] = pfm_root_dir + 'cdip_data'
     else:
-        PFM['hycom_data_dir'] = forcing_dir+'hycom_nc/'
-	print('victoria may need to define the cdip data dir?') 
-	PFM['cdip_data_dir'] = forcing_dir+'cdip_data/'
+        PFM['hycom_data_dir'] = '/dataSIO/PHM_Simulations/raw_download/hycom_nc/'
+        PFM['cdip_data_dir'] =  '/dataSIO/PHM_Simulations/raw_download/cdip_data'
 
 
     PFM['lv1_tides_file']          = 'ocean_tide.nc'
@@ -436,16 +376,9 @@ def create_model_info_dict():
     #PFM['lv1_executable']          = 'LV1_oceanM'
     #PFM['lv2_executable']          = 'LV1_oceanM'
     #PFM['lv3_executable']          = 'LV1_oceanM'
-    # PFM['lv1_executable']          = 'LV3_romsM_INTEL'
-    # PFM['lv2_executable']          = 'LV3_romsM_INTEL'
-    # PFM['lv3_executable']          = 'LV3_romsM_INTEL'
-
-    # currently [June 5 2025] do not have an existing realistic with tides executable ... 
-    PFM['lv1_executable']          = 'ROMS_realistic.bin'
-    PFM['lv2_executable']          = 'ROMS_realistic.bin'
-    PFM['lv3_executable']          = 'ROMS_realistic.bin'
-
-    print('we got to the executables') 
+    PFM['lv1_executable']          = 'LV3_romsM_INTEL'
+    PFM['lv2_executable']          = 'LV3_romsM_INTEL'
+    PFM['lv3_executable']          = 'LV3_romsM_INTEL'
 
     if add_tides==1:
         PFM['lv1_adding_tides'] = 'yes'
@@ -508,19 +441,27 @@ def create_model_info_dict():
     # this is the switch to use restart files
     PFM['restart_files_dir'] =  pfm_root_dir + 'restart_data' 
 
-    # Matt's code uses restarts? 
-
-    # default should be to use a restart
-    # then, if there is no file for the right day, then it should make an IC file 
-    
-
     # right now there are restarts from 2024-10-12 to 2024-10-19
-    PFM['lv1_use_restart']         = 0 # use_restart
-    PFM['lv2_use_restart']         = 0
-    PFM['lv3_use_restart']         = 0
-    PFM['lv4_use_restart']         = 0
-    #PFM['lv4_swan_use_rst']        = 0
-    PFM['lv4_swan_use_rst']        = 1
+    # using restarts is now automatic based on assuming 20241011
+    # is the very first hindcast day
+    if sim_start_time == '2024101100':
+        use_restart_files = 0
+    else:
+        use_restart_files = 1
+
+    if use_restart_files == 0:
+        PFM['lv1_use_restart']         = 0 # use_restart
+        PFM['lv2_use_restart']         = 0
+        PFM['lv3_use_restart']         = 0
+        PFM['lv4_use_restart']         = 0
+        PFM['lv4_swan_use_rst']        = 0
+    else:
+        PFM['lv1_use_restart']         = 1 # use_restart
+        PFM['lv2_use_restart']         = 1
+        PFM['lv3_use_restart']         = 1
+        PFM['lv4_use_restart']         = 1
+        PFM['lv4_swan_use_rst']        = 1
+
 
     # now do the timing information
     start_time = datetime.now()
