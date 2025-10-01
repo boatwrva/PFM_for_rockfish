@@ -86,7 +86,16 @@ def get_nam_hindcast_filelists(t1str,t2str,pkl_fnm):
         fns_out.append(fno)
         fnp = atm_hind_dir + txt1 + yyyymmdd + '_' + hr1_txt + '_' + hr2_txt + '.pkl'
         pckl_nms.append(fnp)
-        cmd = ['wget','-q','-O',fno,url2]
+        ## --retry-connrefused will help if the connection is refused, it will try again
+        # however, written like: cmd = ['wget','-q','-O','--retry-connrefused',fno,url2]
+        # just makes an out file --retry-connrefused
+
+        print(fno)         
+        #cmd = ['wget','--debug','-q','-O',fno,url2]
+        cmd = ['wget','--retry-connrefused','--debug','-q','-O',fno,url2]
+
+        
+        
         cmd_lst.append(cmd)
         # increment time and hour by 3 hr
         tt = tt + dt3hr
@@ -122,7 +131,9 @@ def get_nam_hindcast_grb2s_v2(t1str,t2str,pkl_fnm):
         cmd_list1 = [cmd_list0[i] for i in range(len(fes)) if fes[i] == 0]
     else:
         cmd_list1 = cmd_list0
-    
+
+    # you have a long list of the nam files you want - the archive for the NAM files does not like more than 5 requests on their server at a time 
+    # so instead, convert it to smaller lists (chunks) at a time 
     cmd_list_2 = list_to_dict_of_chunks(cmd_list1, chunk_size=5)
     result2 = []
 
@@ -161,6 +172,9 @@ def get_nam_hindcast_grb2s_v2(t1str,t2str,pkl_fnm):
 
 def get_nam_hindcast_grb2s(t1str,t2str):
 #wget https://www.ncei.noaa.gov/data/north-american-mesoscale-model/access/analysis/202412/20241231/nam_218_20241231_0000_000.grb2
+    # this function for getting the model info will not work anymore 
+
+    
     PFM = get_PFM_info()
     _, _, cmd_list, _ = get_nam_hindcast_filelists(t1str,t2str)
 
