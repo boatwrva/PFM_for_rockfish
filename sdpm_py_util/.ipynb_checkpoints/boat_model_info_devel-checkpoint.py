@@ -3,6 +3,10 @@ This is the one place where you set the path structure for the PFM.
 The info is stored in the dict PFM.
 All? paths are pathlib.Path objects.
 Users should copy this and edit it appropriately in get_model_info.
+
+Victoria edits: 
+Dec 11, 2025: change file locations for project and scratch folders on rockfish 
+Jan 6, 2026: modifying executable name to coawstM; making more adaptable to location change with different folder s
 """
  
 import os
@@ -54,27 +58,29 @@ def create_model_info_dict():
 
     # pfm_dir = '/scratch/PFM_Simulations/' # this stays fixed for Grids and executables
                                          # both forecasting and hindcasting use the same ones.
-    
+
+    '''
+    # old file locations when running from home 
     pfm_dir = '/home/vboatwright/boat_roms/PFM_dir/simulations/'
     forcing_dir = '/home/vboatwright/boat_roms/PFM_dir/model_forcing/'
     driver_dir = '/home/vboatwright/boat_roms/PFM_dir/PFM_for_rockfish/driver/'
-
+    '''
+    pfm_dir = '/project/vboatwright/PFM_dir/simulations/'
+    forcing_dir = '/project/vboatwright/pfm_hindcast_data/model_forcing/' 
+    driver_dir = '/project/vboatwright/PFM_dir/PFM_for_rockfish/driver/'
     
     if run_type == 'forecast':
-        # this probably doesn't exist 
-       pfm_root_dir = '/scratch/PFM_Simulations/'       
+        # this exists now but be careful because it shouldnt be used atm 
+       pfm_root_dir = '/scratch/PHM_Simulations/'       
     else:
        pfm_root_dir = pfm_dir 
    
     PFM = dict()
     
-    # identify server
-    PFM['server'] = 'rockfish'
-    
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
-        sim_start_time = '2024101100' # the simulation start time is in yyyymmddhh format
+        sim_start_time = '2024110100' # the simulation start time is in yyyymmddhh format
         # 2024101100 is the 1st day of hycom with tides hycom data.
-        sim_end_time   = '2024102300' # this is the very last time of the full simulation
+        sim_end_time   = '2025013100' # this is the very last time of the full simulation
         PFM['forecast_days'] = 1.0 # for now we do 1 day sub simulations
         # set the simulation end time. An integer number of days past the start time
         # We will loop over days until we get to this time.
@@ -87,7 +93,9 @@ def create_model_info_dict():
         # sim_time_1 is the inital time of the sub simulation
         # sim_time_2 is the last time of the sub simulation 
         # we loop through levels_to_run
-        PFM['levels_to_run'] = ['LV1','LV2','LV3']
+        # PFM['levels_to_run'] = ['LV1','LV2','LV3','LV4']
+        PFM['levels_to_run'] = ['LV4']
+        
         ocn_model = 'hycom_hind_wtide' # _wtide indicates using the new (>20241010) hycom
         
         # PFM['atm_hind_dir'] = '/dataSIO/PHM_Simulations/raw_download/nam_grb2'
@@ -95,10 +103,15 @@ def create_model_info_dict():
         atm_model = 'nam_analysis'
         PFM['atm_dt_hr'] = 3
 
-        # Matt sets the server here: 
-        # PFM['server'] = 'swell'
-
-        PFM['qtj_obs_fname_full'] = pfm_root_dir + 'river_data/IBWC_Qtrje_custom.csv'
+        # set server
+        PFM['server'] = 'rockfish'
+        
+        # old version? 
+        # PFM['qtj_obs_fname_full'] = pfm_root_dir + 'river_data/IBWC_Qtrje_custom.csv'
+        # new version ? 
+        # PFM['qtj_obs_fname_full'] = '/dataSIO/PHM_Simulations/raw_download/qtj_obs_data/qtj_raw_20200101_20250901.csv'
+        PFM['qtj_obs_fname_full'] = forcing_dir+'qtj_obs_data/qtj_raw_20200101_20250901.csv'
+        PFM['pb_time_switch'] = datetime(2025,4,1)
 
 
     else:
@@ -112,7 +125,13 @@ def create_model_info_dict():
     pfm_grid_dir =  pfm_dir +  'grids'                 # grids. PHM will use the ones in pfm_dir
     lv1_root_dir =  pfm_root_dir +  'LV1/'
     lv2_root_dir =  pfm_root_dir +  'LV2/'
-    lv3_root_dir =  pfm_root_dir +  'LV3/'
+
+    # set run site: either 'SDTJ' or 'LPL'
+    model_location = 'SDTJ' 
+    if model_location == 'LPL': 
+        lv3_root_dir =  pfm_root_dir +  'LV3/'
+    if model_location == 'SDTJ': 
+        lv3_root_dir =  pfm_root_dir + 'LV3_SDTJ/'
     lv4_root_dir =  pfm_root_dir +  'LV4/'
 
     lv1_run_dir  = lv1_root_dir + 'Run'
@@ -135,7 +154,7 @@ def create_model_info_dict():
     lv4_forc_dir = lv4_root_dir + 'Forc'
 
     # here is the switch to go from LV4 Roms only to LV4 coawst
-    #lv4_model = 'ROMS'
+    # lv4_model = 'ROMS'
     lv4_model = 'COAWST'
     if lv4_model == 'ROMS':
         PFM['lv4_blank_name'] = 'LV4_BLANK_nowaves_norivers.in'
@@ -145,10 +164,12 @@ def create_model_info_dict():
                 
     if lv4_model == 'COAWST':
         PFM['lv4_blank_name'] = 'LV4_BLANK.in'
-        PFM['lv4_yaml_file'] = 'LV4_varinfo.yaml'
+        # PFM['lv4_yaml_file'] = 'LV4_varinfo.yaml'
+        # instead - point back to the main ROMS .yaml file 
+        PFM['lv4_yaml_file'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
         #PFM['lv4_exe_name'] = 'LV4_coawstM'
         #PFM['lv4_executable'] = 'LV4_coawstM'
-        PFM['lv4_executable'] = 'coawstM_intel'
+        PFM['lv4_executable'] = 'coawstM' # Matt's: 'coawstM_intel'
         PFM['lv4_blank_swan_name'] = 'LV4_SWAN_BLANK.in'
         PFM['lv4_coupling_name'] = 'LV4_COUPLING_BLANK.in'
 
@@ -165,11 +186,13 @@ def create_model_info_dict():
     # grid file locations
     lv1_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV1_rx020_hmask.nc'
     lv2_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV2_rx020.nc'
-    # switch back to the SD-TJ grid to see if LV3 works with that grid 
-    # lv3_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV3_rx020.nc'
-    # editing LV3 grid to be the LPL grid: 
-    lv3_grid_file = str(pfm_grid_dir) + '/GRID_LV3_LPL_rx020.nc'
-    lv4_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV4_mss_oct2024.nc'
+    if model_location == 'LPL': 
+        lv3_grid_file = str(pfm_grid_dir) + '/GRID_LV3_LPL_rx020.nc'
+        lv4_grid_file = str(pfm_grid_dir) + '/GRID_LV4_Bdem_r020_6river_hplus.nc'
+    else: 
+        lv3_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV3_rx020.nc'
+        lv4_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV4_mss_oct2024.nc'
+        
 
     
     PFM['lv1_grid_file_full'] = lv1_grid_file
@@ -289,8 +312,6 @@ def create_model_info_dict():
     NN['L2','np'] = NN['L2','ntilei'] * NN['L2','ntilej'] # total number of processors
     NN['L2','nnodes'] = int( NN['L2','np'] / 36 )  # 3 number of nodes to be used.  not for .in file but for slurm!
 
-    # set run location
-    model_location = 'LPL' 
     if model_location == 'LPL': 
         print('LPL grid coordinates')
         NN['L3','Lm']  = 249     # Lm in input file
@@ -312,16 +333,18 @@ def create_model_info_dict():
 
     NN['L4','Lm']  = 484     # Lm in input file
     NN['L4','Mm']  = 1139     # Mm in input file
+    
     if lv4_model == 'ROMS':
-        NN['L4','ntilei'] = 14    # 6 number of tiles in I-direction
-        NN['L4','ntilej'] = 36    # 18 number of tiles in J-direction
+        NN['L4','ntilei'] = 4 # swell was: 14    # 6 number of tiles in I-direction
+        NN['L4','ntilej'] = 10 # swell was: 36    # 18 number of tiles in J-direction
         NN['L4','np'] = NN['L4','ntilei'] * NN['L4','ntilej'] # total number of processors
         NN['L4','nnodes'] = int( NN['L4','np'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm!
     if lv4_model == 'COAWST':
+        # need to remember: np_swan will add to np_roms --> np_swan = 36 + ntilei=4 * ntilej=12 = 48 = 84
         # swan = 60, ni=12, nj=37. swan too slow.
-        NN['L4','np_swan']   = 72    # 60 number of CPUs for swan,
-        NN['L4','ntilei'] = 12    # 12 number of tiles in I-direction
-        NN['L4','ntilej'] = 36    # 37 number of tiles in J-direction
+        NN['L4','np_swan']   = 22 # making something up for rockfish. swell was: 72    # 60 number of CPUs for swan,
+        NN['L4','ntilei'] = 4 # swell was: 12    # 12 number of tiles in I-direction
+        NN['L4','ntilej'] = 10 # swell was: 36    # 37 number of tiles in J-direction
         NN['L4','np_roms'] = NN['L4','ntilei'] * NN['L4','ntilej'] # total number of processors
         NN['L4','np_tot'] = NN['L4','np_swan'] + NN['L4','np_roms']
         NN['L4','nnodes'] = int( NN['L4','np_tot'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm!         
@@ -412,7 +435,14 @@ def create_model_info_dict():
     else:
         PFM['hycom_data_dir'] = forcing_dir+'hycom_nc/'
 
-    PFM['cdip_data_dir'] = pfm_root_dir + 'cdip_data'
+    PFM['cdip_data_dir'] = forcing_dir + 'cdip_data'
+
+    # archive cdip data: 
+    PFM['archive_cdip'] = 0 
+    if PFM['archive_cdip'] == 1: 
+        # set cdip archive location: 
+        PFM['cdip_archive_dir'] = PFM['cdip_data_dir'] + '/archive/' # as of jan 6, 2026: this should not exist 
+   
 
     PFM['lv1_tides_file']          = 'ocean_tide.nc'
     PFM['atm_tmp_pckl_file']       = 'atm_tmp_pckl_file.pkl'
@@ -438,6 +468,7 @@ def create_model_info_dict():
     PFM['lv1_executable']          = 'ROMS_realistic.bin'
     PFM['lv2_executable']          = 'ROMS_realistic.bin'
     PFM['lv3_executable']          = 'ROMS_realistic.bin'
+    PFM['lv4_executable']          = 'ROMS_realistic.bin'
 
     print('we got to the executables') 
 
@@ -502,7 +533,7 @@ def create_model_info_dict():
     # this is the switch to use restart files
     PFM['restart_files_dir'] =  pfm_root_dir + 'restart_data' 
 
-    # Matt's code uses restarts? 
+    # Matt's code uses restart files instead of making ICs 
 
     # default should be to use a restart
     # then, if there is no file for the right day, then it should make an IC file 

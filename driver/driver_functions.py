@@ -764,6 +764,7 @@ def run_hind_LV4(t1str,pkl_fnm):
         if MI['lv4_nrrec'] < 0:
             print('WARNING RESTARTING LV4 WILL NOT WORK!!!')
 
+    
     t1=datetime.now()
     print('driver_run_forcast_LV4: making clm.nc, nud.nc, and river.nc files...')
     os.chdir('../sdpm_py_util')
@@ -825,7 +826,7 @@ def run_hind_LV4(t1str,pkl_fnm):
 
     # make all of the dotins
     t1=datetime.now()
-    print('making LV4 ocean, swan, coupling .in and .sb...')
+    print('making LV4 ocean, swan, coupling .in and .sh...')
     os.chdir('../sdpm_py_util')
     runfuns.make_LV4_coawst_dotins_dotsb(pkl_fnm,'hind')
     print('...done')

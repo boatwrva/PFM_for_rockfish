@@ -1131,7 +1131,7 @@ def run_slurm_LV3( pkl_fnm , mod_type ):
     return proc
 
 
-def  make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
+def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
 
     import pickle
     import numpy as np
@@ -1142,8 +1142,7 @@ def  make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
         import init_funs_forecast as initfuns
 
     PFM = initfuns.get_model_info(pkl_fnm)
-    yyyymmddhhmm = PFM['yyyymmdd'] + PFM['hhmm']
-
+    
     # initialize dict to hold values that we will substitute into the dot_in file.
     D = dict()
 
@@ -1206,7 +1205,7 @@ def  make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
 
     #date_string_yesterday = fdt_yesterday.strftime(Lfun.ds_fmt)
     t0          = PFM['modtime0']
-    t2          = datetime.strptime( yyyymmddhhmm, '%Y%m%d%H%M')
+    t2          = PFM['sim_time_1']
     dt          = (t2-t0)/timedelta(days=1) # days since 19990101
     D['dstart'] = str(dt) + 'd0' # this is in the form xxxxx.5 due to 12:00 start time for hycom
 
@@ -1226,7 +1225,11 @@ def  make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     D['swan_wnd_full'] = "'" + PFM['lv4_forc_dir'] + '/' +PFM['lv4_swan_wnd_file'] + "'"     
     D['atm_dt_hr'] = PFM['atm_dt_hr']
 
-    t1 = PFM['fetch_time']
+    if PFM['run_type'] == 'forecast':
+        t1 = PFM['fetch_time']
+    else:
+        t1 = PFM['sim_time_1']
+        
     #t2 = PFM['fore_end_time']
     t2 = t1 + PFM['forecast_days'] * timedelta(days=1)
     t1_swan_str = t1.strftime("%Y%m%d.%H") + '0000'
@@ -1267,25 +1270,33 @@ def  make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
         lv4_infile_roms    = 'LV4_forecast_run.in'
         lv4_infile_swan    = 'LV4_forecast_swan.in'
 
+    dot_in_dir   = '.'
+    blank_infile = dot_in_dir +'/' +  PFM['lv4_blank_name'] 
+    
     lv4_logfile_local      = 'LV4_forecast.log'
-    lv4_sbfile_local       = 'LV4_SLURM.sb'
+    # making 'sb' file - sb for swll, sh for rockfish/estuaries
+    if PFM['server'] == 'swell': 
+        # use slurm so make an .sb file
+        lv4_sbfile_local       = 'LV4_SLURM.sb'
+        # and identify the blank file to use 
+        #blank_sbfile = dot_in_dir +'/' +  'LV4_SLURM_BLANK.sb'
+        if D['lv4_executable'] == '/scratch/PFM_Simulations/executables/coawstM_intel':
+            blank_sbfile = dot_in_dir +'/' +  'LV4_SLURM_intel_BLANK.sb'
+        else:        
+            blank_sbfile = dot_in_dir +'/' +  'LV4_SLURM_BLANK.sb'
+        
+    if PFM['server'] == 'rockfish': 
+        # just an sh file 
+        lv4_sbfile_local = 'LV4_openmp.sh'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV4_openmp.sh'
+
+    
     D['lv4_infile_local']  = lv4_infile_coupled
     D['lv4_logfile_local'] = lv4_logfile_local
 #    D['lv4_executable']    = PFM['lv4_run_dir'] + '/' + PFM['lv4_exe_name']
     D['lv4_executable'] = PFM['executable_dir']  + PFM['lv4_executable']
-    print('we are using')
-    print(D['lv4_executable'])
-    print('for LV4')
 
-
-    dot_in_dir   = '.'
-    blank_infile = dot_in_dir +'/' +  PFM['lv4_blank_name'] 
-    #blank_sbfile = dot_in_dir +'/' +  'LV4_SLURM_BLANK.sb'
-    if D['lv4_executable'] == '/scratch/PFM_Simulations/executables/coawstM_intel':
-        blank_sbfile = dot_in_dir +'/' +  'LV4_SLURM_intel_BLANK.sb'
-    else:        
-        blank_sbfile = dot_in_dir +'/' +  'LV4_SLURM_BLANK.sb'
-    
     
     blank_coupling = dot_in_dir + '/' + 'LV4_COUPLING_BLANK.in'
     blank_swan     = dot_in_dir + '/' + 'LV4_SWAN_BLANK.in'
@@ -1313,6 +1324,21 @@ def  make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     D['angle_max'] = np.max(cdip['dir'])    
     D['angle_num'] = len(cdip['dir'])
     D['angle_dangle'] = cdip['dir'][1] - cdip['dir'][0]    
+
+
+    print('for this LV4 simulation')
+    print('the grid file used is:')
+    print(D['lv4_grid_full'])
+    print('history file made will be:')
+    print(D['lv4_his_name_full'])
+    print('restart file made will be:')
+    print(D['lv4_rst_name_full'])
+    print('the ini file used is:')
+    print(D['lv4_ini_file'])
+    print('the river input file is:')
+    print(D['lv4_river_file'])
+    print('we are using')
+    print(D['lv4_executable'])
 
 
     ## here is ocean.in 
@@ -1403,7 +1429,15 @@ def run_slurm_LV4( pkl_fnm , mod_type):
     os.chdir(PFM['lv4_run_dir'])
     print('run_slurm_LV4: current directory is now: ', os.getcwd() )
     
-    cmd_list = ['sbatch', '--wait' ,'LV4_SLURM.sb']
+    
+    if PFM['server'] == 'swell': 
+        # use slurm and therefore sbatch 
+        cmd_list = ['sbatch', '--wait' ,'LV4_SLURM.sb']
+        
+    if PFM['server'] == 'rockfish': 
+        # use bash 
+        cmd_list = ['bash','LV4_openmp.sh'] 
+
     proc = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     time.sleep(int(swan_check_freq))  # Check every dt_sec second
@@ -1413,7 +1447,7 @@ def run_slurm_LV4( pkl_fnm , mod_type):
 
     print(proc)
     print('run_slurm_LV4: run command: ', cmd_list )
-    print('subprocess slurm ran correctly? ' + str(proc.returncode) + ' (0=yes)')
+    print('subprocess exec ran correctly? ' + str(proc.returncode) + ' (0=yes)')
 
     # change directory back to what it was before
     os.chdir(cwd)

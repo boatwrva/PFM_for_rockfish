@@ -248,7 +248,12 @@ def get_nwm_analysis_flow(t_riv,pkl_fnm):
     if 'nwm_dir' in PFM:
         nwm_dir = PFM['nwm_dir']
     else:
-        nwm_dir = '/dataSIO/PHM_Simulations/raw_download/nwm_files/'
+        # nwm_dir = '/dataSIO/PHM_Simulations/raw_download/nwm_files/'
+        nwm_dir = '/project/vboatwright/pfm_hindcast_data/model_forcing/nwm_files/' 
+    
+    # Jan 6, 2026: since I can't figure out where PFM['nwm_dir'] is set, I will set it myself right here (fix later!!!) 
+    # nwm_dir = '/project/vboatwright/pfm_hindcast_data/model_forcing/nwm_files/' 
+    
 
     # get the nwm .nc file names that should be archinved that are needed for the simulation
     file_names = get_nwm_file_names(nwm_dir,fn_dates)
@@ -557,6 +562,7 @@ def get_river_flow_nwm(yyyymmddhh,t_pfm_str,pkl_fnm):
 def get_river_temp(t_riv,pkl_fnm,ts1=None,ts2=None):	
     # triv is days past reference time, what we interpolate to...
     # victoria did not have t_riv in code, so maybe will have to get rid of this. tbd 
+    # when I was downloading a bunch of data to plot river_temp , used: get_river_temp(t_riv,pkl_fnm,ts1=None,ts2=None):	
 
     PFM = initfuns.get_model_info(pkl_fnm)
     fatm = PFM['lv4_forc_dir'] + '/' + PFM['lv4_atm_file'] 
@@ -586,10 +592,10 @@ def get_river_temp(t_riv,pkl_fnm,ts1=None,ts2=None):
         p1=ax.plot(t_riv_dt,temp_river_time)
         plt.setp(plt.xticks()[1], rotation=30, ha='right') # ha is the same as horizontalalignment
         plt.ylabel('river_temperature [C]')
-<<<<<<< HEAD
         if ts1 == None: 
-            plt.title('all 3 rivers have this temperature for forecast: ' + PFM['yyyymmdd'] + PFM['hhmm'] )
-            fn_out = PFM['lv4_plot_dir'] + '/river_temperature_' + PFM['yyyymmdd'] + PFM['hhmm'] + '.png'
+            plt.title('all 3 rivers have this temperature for: ' + PFM['sim_time_1'].strftime('%Y%m%d%H') )
+            fn_out = PFM['lv4_plot_dir'] + '/river_temperature_' + PFM['sim_time_1'].strftime('%Y%m%d%H') + '.png'
+            plt.savefig(fn_out, dpi=300)
         
         else: 
             plt.title('all 3 rivers have this temp : ' + ts1 )
@@ -597,16 +603,13 @@ def get_river_temp(t_riv,pkl_fnm,ts1=None,ts2=None):
     
     plt.savefig(fn_out, dpi=300)
     plt.show()
-=======
-        plt.title('all 3 rivers have this temperature for: ' + PFM['sim_time_1'].strftime('%Y%m%d%H') )
-        fn_out = PFM['lv4_plot_dir'] + '/river_temperature_' + PFM['sim_time_1'].strftime('%Y%m%d%H') + '.png'
-        plt.savefig(fn_out, dpi=300)
->>>>>>> upstream/PHM_development
 
     # temp_river is the mean over land and time
     # temp_river_time is the mean over land at each time stamp.
     # t_riv is the timesteps 
-    return temp_river, temp_river_time, t_riv
+    # my output was: temp_river, temp_river_time, t_riv
+    # matt's output is: temp_river, temp_river_time
+    return temp_river, temp_river_time 
 
 def download_ibwc_file(url, save_path):
     """
