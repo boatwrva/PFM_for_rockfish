@@ -160,22 +160,22 @@ def create_model_info_dict():
         PFM['lv4_blank_name'] = 'LV4_BLANK_nowaves_norivers.in'
         PFM['lv4_yaml_file'] = 'LV4_varinfo_nowaves_norivers.yaml'
         #PFM['lv4_exe_name'] = 'LV4_ocean_nowaves_noriversM'
-        PFM['lv4_executable'] = 'LV1_oceanM'
+        # PFM['lv4_executable'] = 'LV1_oceanM' --> this gets re-written below 
                 
     if lv4_model == 'COAWST':
         PFM['lv4_blank_name'] = 'LV4_BLANK.in'
         # PFM['lv4_yaml_file'] = 'LV4_varinfo.yaml'
         # instead - point back to the main ROMS .yaml file 
         PFM['lv4_yaml_file'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
-        #PFM['lv4_exe_name'] = 'LV4_coawstM'
-        #PFM['lv4_executable'] = 'LV4_coawstM'
-        PFM['lv4_executable'] = 'coawstM' # Matt's: 'coawstM_intel'
         PFM['lv4_blank_swan_name'] = 'LV4_SWAN_BLANK.in'
         PFM['lv4_coupling_name'] = 'LV4_COUPLING_BLANK.in'
 
+
     lv4_his_dir  = lv4_root_dir + 'His'
     lv4_plot_dir = lv4_root_dir + 'Plots'          
-    lv4_coawst_varinfo_full = lv4_run_dir + '/LV4_coawst_varinfo.dat'
+    # lv4_coawst_varinfo_full = lv4_run_dir + '/LV4_coawst_varinfo.dat'
+    # i didn't have this file. it exists in the COAWSTv38/COAWST/ROMS/External/varinfo.dat --> copied it to LV4/Run/
+    lv4_coawst_varinfo_full = lv4_run_dir + '/roms_coawst_varinfo.dat'
     PFM['lv4_coawst_varinfo_full'] = lv4_coawst_varinfo_full
     PFM['lv4_nwave_dirs'] = '11' # used in the ocean.in file. it does NOT match swan
     PFM['lv4_clm_file'] = 'LV4_clm.nc'    
@@ -186,21 +186,31 @@ def create_model_info_dict():
     # grid file locations
     lv1_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV1_rx020_hmask.nc'
     lv2_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV2_rx020.nc'
+    
     if model_location == 'LPL': 
         lv3_grid_file = str(pfm_grid_dir) + '/GRID_LV3_LPL_rx020.nc'
         lv4_grid_file = str(pfm_grid_dir) + '/GRID_LV4_Bdem_r020_6river_hplus.nc'
     else: 
         lv3_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV3_rx020.nc'
         lv4_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV4_mss_oct2024.nc'
-        
 
-    
+        
     PFM['lv1_grid_file_full'] = lv1_grid_file
     PFM['lv2_grid_file_full'] = lv2_grid_file
     PFM['lv3_grid_file_full'] = lv3_grid_file
     PFM['lv4_grid_file_full'] = lv4_grid_file
 
-    print('we got to the grid files') 
+    if lv4_model == 'COAWST':
+        # make sure you've made the bot and grd files if you are running SWAN
+        filename = 'swan_LV4.bot'
+        if os.path.exists(filename):
+            print('We have the swan_LV4.bot file')
+        else:
+            print('We are making the swan_LV4.bot file...') 
+
+            
+    
+    print('we got to (and have!) all the grid files') 
     print(f'grid file is: {PFM['lv3_grid_file_full']}')
 
     
@@ -342,12 +352,12 @@ def create_model_info_dict():
     if lv4_model == 'COAWST':
         # need to remember: np_swan will add to np_roms --> np_swan = 36 + ntilei=4 * ntilej=12 = 48 = 84
         # swan = 60, ni=12, nj=37. swan too slow.
-        NN['L4','np_swan']   = 22 # making something up for rockfish. swell was: 72    # 60 number of CPUs for swan,
-        NN['L4','ntilei'] = 4 # swell was: 12    # 12 number of tiles in I-direction
-        NN['L4','ntilej'] = 10 # swell was: 36    # 37 number of tiles in J-direction
+        NN['L4','np_swan']   = 1 # was 22 but broke. # making something up for rockfish. swell was: 72    # 60 number of CPUs for swan,
+        NN['L4','ntilei'] = 1 #4 # swell was: 12    # 12 number of tiles in I-direction
+        NN['L4','ntilej'] = 1 # 10 # swell was: 36    # 37 number of tiles in J-direction
         NN['L4','np_roms'] = NN['L4','ntilei'] * NN['L4','ntilej'] # total number of processors
         NN['L4','np_tot'] = NN['L4','np_swan'] + NN['L4','np_roms']
-        NN['L4','nnodes'] = int( NN['L4','np_tot'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm!         
+        NN['L4','nnodes'] = int( NN['L4','np_tot'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm! 
         PFM['swan_to_roms'] = '720.0d0'
 
 # timing info
@@ -468,8 +478,13 @@ def create_model_info_dict():
     PFM['lv1_executable']          = 'ROMS_realistic.bin'
     PFM['lv2_executable']          = 'ROMS_realistic.bin'
     PFM['lv3_executable']          = 'ROMS_realistic.bin'
-    PFM['lv4_executable']          = 'ROMS_realistic.bin'
+    
+    if PFM['lv4_model'] == 'COAWST': 
+        PFM['lv4_executable']          = 'coawstG_2021' # 'coawstM' 
+    if PFM['lv4_model'] == 'ROMS': 
+        PFM['lv4_executable']          = 'ROMS_realistic.bin'
 
+    
     print('we got to the executables') 
 
     if add_tides==1:

@@ -1300,13 +1300,14 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     
     blank_coupling = dot_in_dir + '/' + 'LV4_COUPLING_BLANK.in'
     blank_swan     = dot_in_dir + '/' + 'LV4_SWAN_BLANK.in'
+    # truncation error! SWAN cannot access an infile name that is longer than 20 characters. in theory, you should be running from the LV4_run_dir, so you shouldn't need the prefix 
     lv4_couple_infile   = D['lv4_run_dir'] + '/' + lv4_infile_coupled
-    lv4_swan_infile     =  D['lv4_run_dir'] + '/' + lv4_infile_swan
+    lv4_swan_infile_full     =  D['lv4_run_dir'] + '/' + lv4_infile_swan
     lv4_infile = D['lv4_run_dir'] + '/' + lv4_infile_roms
     lv4_sbfile   = D['lv4_run_dir'] + '/' + lv4_sbfile_local
     D['swan_to_roms'] = PFM['swan_to_roms']
     D['lv4_roms_infile'] = lv4_infile
-    D['lv4_swan_infile'] = lv4_swan_infile
+    D['lv4_swan_infile'] = lv4_infile_swan
 
     D['swan_init_txt'] = PFM['swan_init_txt_full'] # 'ZERO'
                                                     # or 'HOTSTART PFM['restart_files_dir']+swan_file_name
@@ -1373,7 +1374,7 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
 
 # do the swan .in 
     f  = open( blank_swan,'r')
-    f2 = open( lv4_swan_infile,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
+    f2 = open( lv4_swan_infile_full,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
     for line in f:
         for var in D.keys():
             if '$'+var+'$' in line:

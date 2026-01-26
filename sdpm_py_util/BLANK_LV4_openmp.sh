@@ -4,4 +4,4 @@ echo $lv4_executable$
 
 # format for mpiexec: mpiexec -np <np> <filename_to_execute> <infile_local> > logfile.log 
 
-mpiexec -np $np$ $lv4_executable$ $lv4_infile_local$ > $lv4_logfile_local$
+mpiexec -np $np$ $lv4_executable$ $lv4_infile_local$ 2>&1 | tee $lv4_logfile_local$
