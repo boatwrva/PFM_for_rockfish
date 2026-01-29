@@ -289,7 +289,7 @@ def  make_LV1_dotin_and_SLURM( pkl_fnm , mod_type ):
     D['nrrec']        = nrrec
     D['lv1_ini_file'] = lv1_ini_dir + '/' + ininame
     D['lv1_bc_file']  = PFM['lv1_forc_dir'] + '/' + PFM['lv1_bc_file']    
-
+    D['roughness'] = str( PFM['lv1_bottom_roughness'] ) + 'd0'
  
     D['vtransform']  = PFM['stretching']['L1','Vtransform']
     D['vstretching'] = PFM['stretching']['L1','Vstretching']
@@ -603,6 +603,7 @@ def  make_LV2_dotin_and_SLURM( pkl_fnm , mod_type ):
     D['ntilej'] = PFM['gridinfo']['L2','ntilej']
     D['np']     = PFM['gridinfo']['L2','np']
     D['nnodes'] = PFM['gridinfo']['L2','nnodes']
+    D['roughness'] = str( PFM['lv2_bottom_roughness'] ) + 'd0'
 
     # timing info
     dtsec         = PFM['tinfo']['L2','dtsec']
@@ -973,6 +974,7 @@ def  make_LV3_dotin_and_SLURM( pkl_fnm , mod_type ):
     D['ntilej'] = PFM['gridinfo']['L3','ntilej']
     D['np']     = PFM['gridinfo']['L3','np']
     D['nnodes'] = PFM['gridinfo']['L3','nnodes']
+    D['roughness'] = str( PFM['lv3_bottom_roughness'] ) + 'd0'
 
     # timing info
     dtsec         = PFM['tinfo']['L3','dtsec']
@@ -1171,6 +1173,7 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     D['nz']     = PFM['stretching']['L4','Nz']     # number of vertical levels: 40
     D['ntilei'] = PFM['gridinfo']['L4','ntilei']
     D['ntilej'] = PFM['gridinfo']['L4','ntilej']
+    
     ### we defined things slightly differently when allocating nodes for ROMS v SWAN 
     if PFM['lv4_model'] == 'COAWST':     
         D['np_roms'] = PFM['gridinfo']['L4','np_roms']
@@ -1188,15 +1191,40 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
         D['np']     = PFM['gridinfo']['L4','np']
         D['nnodes'] = PFM['gridinfo']['L4','nnodes']
         
+    D['roughness'] = str( PFM['lv4_bottom_roughness'] ) + 'd0'
 
     D['lv4_clm_file'] = PFM['lv4_forc_dir'] + '/' + PFM['lv4_clm_file']
     D['lv4_nud_file'] = PFM['lv4_forc_dir'] + '/' + PFM['lv4_nud_file']
     D['lv4_river_file'] = PFM['lv4_forc_dir'] +'/' + PFM['lv4_river_file']
 
     # timing info
-    dtsec         = PFM['tinfo']['L4','dtsec']
+    # the default here is 2 sec.
+    dtsec   = PFM['tinfo']['L4','dtsec']
+    # the default here is 8. so 1/4 sec for barotropic waves?
     D['ndtfast']  = PFM['tinfo']['L4','ndtfast']
     #     forecast_days = PFM['tinfo']['L4','forecast_days']  #   forecast_days=2;
+    
+    #print('\nmod type is, hind_river_type, sim_time_1, dt1_days_ibwc are:')
+    #print(mod_type)
+    #print(PFM['hind_river_type'])
+    #print(PFM['sim_time_1'])
+    #print(PFM['dt1_days_ibwc'])
+
+    # here we switch to 1 sec if there are large TJR flows
+    if (mod_type == 'hind') and (PFM['hind_river_type'] == 'vPFM') and (PFM['sim_time_1'] in PFM['dt1_days_pfm']) :
+        dtsec        = 1
+        D['ndtfast'] = 4
+    if (mod_type == 'hind') and (PFM['hind_river_type'] == 'NWM') and (PFM['sim_time_1'] in PFM['dt1_days_nwm']) :
+        dtsec        = 1
+        D['ndtfast'] = 4
+    if (mod_type == 'hind') and (PFM['hind_river_type'] == 'IBWC_raw') and (PFM['sim_time_1'] in PFM['dt1_days_ibwc']) :
+        dtsec        = 1
+        D['ndtfast'] = 4
+
+    print('dtsec = ')
+    print(dtsec)
+
+#    forecast_days = PFM['tinfo']['L4','forecast_days']  #   forecast_days=2;
     forecast_days = PFM['forecast_days']  #   forecast_days=2;
     days_to_run   = forecast_days  #float(Ldir['forecast_days'])
     his_interval  = PFM['outputinfo']['L4','his_interval']
@@ -1239,8 +1267,9 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     D['swan_bot_full'] = "'" + PFM['lv4_grid_dir'] + '/' + PFM['lv4_swan_bot_file'] + "'"      
     D['swan_bnd_full'] = "'" + PFM['lv4_forc_dir'] + '/' +PFM['lv4_swan_bnd_file'] + "'"      
     D['swan_wnd_full'] = "'" + PFM['lv4_forc_dir'] + '/' +PFM['lv4_swan_wnd_file'] + "'"     
+    D['swan_wnd_full'] = "'" + PFM['lv4_forc_dir'] + '/' +PFM['lv4_swan_wnd_file'] + "'"     
     D['atm_dt_hr'] = PFM['atm_dt_hr']
-
+        
     if PFM['run_type'] == 'forecast':
         t1 = PFM['fetch_time']
     else:
@@ -1352,7 +1381,20 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
         D['angle_num'] = len(cdip['dir'])
         D['angle_dangle'] = cdip['dir'][1] - cdip['dir'][0]    
 
-
+    D['wind_line_1'] = 'INPGRID WIND CURVILINEAR 0 0 ' + str(D['ncols_swan']) + ' ' +  str(D['nrows_swan']) + ' EXC 9.999000e+003 &'
+    D['wind_line_nonstationary'] = 'NONSTATIONARY ' + D['swan_t1_str'] + ' ' +  str(D['atm_dt_hr']) + ' HR ' +  D['swan_t2_str']
+    D['wind_line_2'] = 'READINP WIND 1 ' + D['swan_wnd_full'] + ' 4 0 FREE' 
+    D['wind_line_3'] = 'GEN3 KOM'
+    D['quad_line']  = 'OFF QUAD' # these needs to be off for no wind
+    if not PFM['swan_wind_wave_generation']:
+        print('we are not going to generate wind waves in swan.')
+        D['wind_line_1'] = '&&' + D['wind_line_1']
+        D['wind_line_2'] = '&&' + D['wind_line_2']
+        #D['wind_line_3'] = '&&' + D['wind_line_3']
+        D['wind_line_nonstationary'] = '&&' + D['wind_line_nonstationary']
+    else:
+        D['quad_line'] = '&&' + D['quad_line'] # and on for wind
+    
     print('for this LV4 simulation')
     print('the grid file used is:')
     print(D['lv4_grid_full'])

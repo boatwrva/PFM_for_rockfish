@@ -5,6 +5,9 @@ All? paths are pathlib.Path objects.
 Users should copy this and edit it appropriately in get_model_info.
 """
  
+import os
+import pickle
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import grid_functions as grdfuns
 import numpy as np
@@ -37,42 +40,62 @@ def get_llbox(fname):
 # the function below MUST be called create_model_info_dict!!!
 def create_model_info_dict():
 
-    #run_type determines whether we do a forecast or a hindcast 
-    #run_type = 'hindcast'
-    run_type = 'forecast'
+    run_type = 'hindcast'
 
-    # is this needed...
-    #HOME = Path.home()
-    #try:
-    #    HOSTNAME = os.environ['HOSTNAME']
-    #except KeyError:
-    #    HOSTNAME = 'BLANK'
+    HOME = Path.home()
+    try:
+        HOSTNAME = os.environ['HOSTNAME']
+    except KeyError:
+        HOSTNAME = 'BLANK'
 
-    # PFM is the dictionary that contains all of the model information
-    PFM = dict()
-    PFM['run_type'] = run_type
-    d0b = 0.001
-    PFM['lv1_bottom_roughness'] = d0b # bottom roughness in meters
-    PFM['lv2_bottom_roughness'] = d0b # bottom roughness in meters
-    PFM['lv3_bottom_roughness'] = d0b # bottom roughness in meters
-    PFM['lv4_bottom_roughness'] = d0b # bottom roughness in meters
+    #run_type = 'forecast' # this is the switch to go from forecasting to hindcasting...
+
     pfm_dir = '/scratch/PFM_Simulations/' # this stays fixed for Grids and executables
                                          # both forecasting and hindcasting use the same ones.
+    if run_type == 'forecast':
+       pfm_root_dir = '/scratch/PFM_Simulations/'       
+    else:
+       #pfm_root_dir = '/scratch/PHM_Simulations/riv_nwm/'  # other options are:     
+       #pfm_root_dir = '/scratch/PHM_Simulations/riv_ibwc_raw/'  # other options are:     
+       pfm_root_dir = '/scratch/PHM_Simulations/riv_vpfm/'  # other options are:     
+        #['/riv_nwm','/riv_ibwc_raw','/riv_vpfm']
     
-    #model_root_dir = '/scratch/matt/PFM_Simulations_v2/'  
-    model_root_dir = '/scratch/PFM_Simulations/'
+    PFM = dict()
+    if pfm_root_dir == '/scratch/PHM_Simulations/riv_nwm/':       
+        d0b = 0.0007
+        PFM['hind_river_type'] = 'NWM' 
+        hind_archive_dir = '/dataSIO/PHM_Simulations/riv_nwm/'
+    elif pfm_root_dir == '/scratch/PHM_Simulations/riv_ibwc_raw/':
+        d0b = 0.001
+        PFM['hind_river_type'] = 'IBWC_raw' 
+        hind_archive_dir = '/dataSIO/PHM_Simulations/riv_ibwc_raw/'
+    elif pfm_root_dir == '/scratch/PHM_Simulations/riv_vpfm/':
+        d0b = 0.0004
+        PFM['hind_river_type'] = 'vPFM' 
+        hind_archive_dir = '/dataSIO/PHM_Simulations/riv_vpfm/'
+
+    PFM['hind_lv1_archive_dir'] = hind_archive_dir + 'LV1/'
+    PFM['hind_lv2_archive_dir'] = hind_archive_dir + 'LV2/'
+    PFM['hind_lv3_archive_dir'] = hind_archive_dir + 'LV3/'
+    PFM['hind_lv4_archive_dir'] = hind_archive_dir + 'LV4/'
+    PFM['hind_river_archive_dir'] = hind_archive_dir + 'river_ncs/'
+
+    PFM['lv1_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
+    PFM['lv2_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
+    PFM['lv3_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
+    PFM['lv4_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
     
     PFM['swan_wind_wave_generation'] = False # make or do not make wind waves in swan.
-    PFM['use_IBWC'] = True
-    PFM['use_constant_flow'] = False
-
 
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
-        sim_start_time = '2024101100' # the simulation start time is in yyyymmddhh format
-        sim_end_time   = '2024101300' # this is the very last time of the full simulation
+        sim_start_time = '2025060300' # the simulation start time is in yyyymmddhh format
+        # 2024101100 is the 1st day of hycom with tides hycom data.
+        sim_end_time   = '2025060600' # this is the very last time of the full simulation
         PFM['forecast_days'] = 1.0 # for now we do 1 day sub simulations
         # set the simulation end time. An integer number of days past the start time
         # We will loop over days until we get to this time.
+        PFM['auto_start_hind'] = True
+        PFM['hindcast_duration'] = 5 # how long the hindcast will be in days
         PFM['sim_start_time'] = datetime.strptime(sim_start_time,'%Y%m%d%H')
         PFM['sim_end_time'] = datetime.strptime(sim_end_time,'%Y%m%d%H')
         PFM['sim_time_1'] = PFM['sim_start_time']
@@ -82,53 +105,56 @@ def create_model_info_dict():
         # sim_time_1 is the inital time of the sub simulation
         # sim_time_2 is the last time of the sub simulation 
         # we loop through levels_to_run
-        PFM['levels_to_run'] = ['LV1','LV2','LV3']
+        PFM['levels_to_run'] = ['LV1','LV2','LV3','LV4']
         ocn_model = 'hycom_hind_wtide' # _wtide indicates using the new (>20241010) hycom
         PFM['atm_hind_dir'] = '/dataSIO/PHM_Simulations/raw_download/nam_grb2'
         atm_model = 'nam_analysis'
         PFM['atm_dt_hr'] = 3
         PFM['server'] = 'swell'
+        PFM['qtj_obs_fname_full'] = '/dataSIO/PHM_Simulations/raw_download/qtj_obs_data/qtj_raw_20200101_20250901.csv'
+        PFM['pb_time_switch'] = datetime(2025,4,1)
+        PFM['nwm_dir'] = '/dataSIO/PHM_Simulations/raw_download/nwm_files/'
+        PFM['dt1_days_ibwc'] = [datetime(2025,1,27),
+                                datetime(2025,2,14),
+                                datetime(2025,3,13),
+                                datetime(2025,3,14)]
+        PFM['dt1_days_nwm'] = []
+        PFM['dt1_days_pfm'] = []
     else:
-        PFM['levels_to_run'] = ['LV1','LV2','LV3','LV4']
         # hycom_new is the only forecast option
         ocn_model = 'hycom_new' # worked with 'hycom' but that is now (9/13/24) depricated      
-        PFM['clean_start']=True
-        # where do we find, and save, the raw hycom data to...
-        PFM['hycom_dir'] = pfm_dir + 'hycom_data/'
-        PFM['Q_PB'] = -2.0 # m3/s flow at Punta Bandera
-        PFM['dye_PB'] = 0.5 # fraction of Q_PB that is raw WW
-       # this is where PFM saves atm forcing and river discharge to at end of PFM simulation
-        PFM['archive_dir'] = '/dataSIO/PFM_Simulations/Archive/Forcing/'
-        PFM['archive_web_dir'] = '/dataSIO/PFM_Simulations/Archive/web/'
-
+    
     if ocn_model == 'hycom_new' or ocn_model == 'hycom_hind_wtide':
         add_tides=0 # the new version of hycom has tides, we don't need to add them
 
     PFM['executable_dir'] = pfm_dir + 'executables/'   # we will not make copies of executables and 
     pfm_grid_dir =  pfm_dir +  'Grids'                 # grids. PHM will use the ones in pfm_dir
-    lv1_root_dir =  model_root_dir +  'LV1_Forecast/'
-    lv2_root_dir =  model_root_dir +  'LV2_Forecast/'
-    lv3_root_dir =  model_root_dir +  'LV3_Forecast/'
-    lv4_root_dir =  model_root_dir +  'LV4_Forecast/'
+    lv1_root_dir =  pfm_root_dir +  'LV1_Forecast/'
+    lv2_root_dir =  pfm_root_dir +  'LV2_Forecast/'
+    lv3_root_dir =  pfm_root_dir +  'LV3_Forecast/'
+    lv4_root_dir =  pfm_root_dir +  'LV4_Forecast/'
 
     lv1_run_dir  = lv1_root_dir + 'Run'
-    lv1_his_dir  = lv1_root_dir + 'His'
     lv1_forc_dir = lv1_root_dir + 'Forc'
-    lv1_tide_dir = pfm_dir + 'tide_data'
+    lv1_tide_dir = lv1_root_dir + 'Tides'
     lv1_plot_dir = lv1_root_dir + 'Plots'          
 
     lv2_run_dir  = lv2_root_dir + 'Run'
-    lv2_his_dir  = lv2_root_dir + 'His'
     lv2_forc_dir = lv2_root_dir + 'Forc'
     lv2_plot_dir = lv2_root_dir + 'Plots'          
 
     lv3_run_dir  = lv3_root_dir + 'Run'
-    lv3_his_dir  = lv3_root_dir + 'His'
     lv3_forc_dir = lv3_root_dir + 'Forc'
     lv3_plot_dir = lv3_root_dir + 'Plots'          
 
     lv4_run_dir  = lv4_root_dir + 'Run'
     lv4_forc_dir = lv4_root_dir + 'Forc'
+
+
+    lv1_his_dir  = lv1_root_dir + 'His'
+    lv2_his_dir  = lv2_root_dir + 'His'
+    lv3_his_dir  = lv3_root_dir + 'His'
+    lv4_his_dir  = lv4_root_dir + 'His'
 
     # here is the switch to go from LV4 Roms only to LV4 coawst
     #lv4_model = 'ROMS'
@@ -148,15 +174,14 @@ def create_model_info_dict():
         PFM['lv4_blank_swan_name'] = 'LV4_SWAN_BLANK.in'
         PFM['lv4_coupling_name'] = 'LV4_COUPLING_BLANK.in'
 
-    lv4_his_dir  = lv4_root_dir + 'His'
     lv4_plot_dir = lv4_root_dir + 'Plots'          
     lv4_coawst_varinfo_full = lv4_run_dir + '/LV4_coawst_varinfo.dat'
     PFM['lv4_coawst_varinfo_full'] = lv4_coawst_varinfo_full
     PFM['lv4_nwave_dirs'] = '11' # used in the ocean.in file. it does NOT match swan
     PFM['lv4_clm_file'] = 'LV4_clm.nc'    
     PFM['lv4_nud_file'] = 'LV4_nud.nc'    
-    PFM['lv4_river_file'] = 'LV4_river.nc'    
-    PFM['qtj_obs_fname_full'] = lv4_forc_dir + '/qtjr_obs_tmp.csv'
+    PFM['lv4_river_file'] = 'LV4_river.nc'    # for PFM. overwritten below for PHM.
+
 
 # grid file locations
     lv1_grid_file = str(pfm_grid_dir) + '/GRID_SDTJRE_LV1_rx020_hmask.nc'
@@ -196,7 +221,7 @@ def create_model_info_dict():
             PFM['forecast_days'] = 5.0 #is the target 
             PFM['atm_dt_hr'] = 1
     
-    PFM['ecmwf_dir'] = pfm_dir + 'ecmwf_data/' # this is where the forecast ecmwf data goes
+    PFM['ecmwf_dir'] = '/scratch/PFM_Simulations/ecmwf_data/'
     PFM['ecmwf_all_pkl_name'] = 'ecmwf_all.pkl'
     PFM['ecmwf_pkl_roms_vars'] = 'ecmwf_roms_vars.pkl'
     PFM['ecmwf_pkl_on_roms_grid'] = 'ecmwf_on_romsgrid.pkl'
@@ -255,7 +280,7 @@ def create_model_info_dict():
     NN['L1','Lm']  = 251     # Lm in input file
     NN['L1','Mm']  = 388     # Mm in input file
     NN['L1','ntilei'] = 9    # 6 number of tiles in I-direction
-    NN['L1','ntilej'] = 24   # 18 number of tiles in J-direction
+    NN['L1','ntilej'] = 20   # 18 number of tiles in J-direction
     NN['L1','np'] = NN['L1','ntilei'] * NN['L1','ntilej'] # total number of processors
     NN['L1','nnodes'] =  int( NN['L1','np'] / 36 )  # 3 number of nodes to be used.  not for .in file but for slurm!
 
@@ -309,9 +334,9 @@ def create_model_info_dict():
     tt['L4','forecast_days'] = PFM['forecast_days']
 
 #  max slurm time for level 1,2,3,4, in minutes
-    lv1_mins = int( np.round( 8.0 * 60.0 * PFM['forecast_days'] / (2.5 * tt['L1','dtsec']) ) )
-    lv2_mins = int( np.round( 10.0 * 30.0 * PFM['forecast_days'] / (2.5 * tt['L2','dtsec']) ) )
-    lv3_mins = int( np.round( 15.0 * 15.0 * PFM['forecast_days'] / (2.5 * tt['L3','dtsec']) ) )
+    lv1_mins = int( np.round( 10.0 * 60.0 * PFM['forecast_days'] / (2.5 * tt['L1','dtsec']) ) )
+    lv2_mins = int( np.round( 15.0 * 30.0 * PFM['forecast_days'] / (2.5 * tt['L2','dtsec']) ) )
+    lv3_mins = int( np.round( 20.0 * 15.0 * PFM['forecast_days'] / (2.5 * tt['L3','dtsec']) ) )
     lv4_mins = int( np.round( 180.0 * 2.0 * PFM['forecast_days'] / (2.5 * tt['L4','dtsec']) ) )
 #  this 180 minutes is more than it takes for current (12/12/24) tiling and dt=2sec, Tf=2.5 days (135 min).
 #  we add a buffer and we scale linearly with forecast days and dt.   
@@ -332,6 +357,7 @@ def create_model_info_dict():
     OP['L4','his_interval'] = 3600 # how often in sec outut is written to his.nc
     OP['L4','rst_interval'] = 0.25  # how often in days, a restart file is made. 
 
+    PFM['run_type'] = run_type
 
     # first the environment
     PFM['lv1_run_dir']  = lv1_run_dir
@@ -365,20 +391,13 @@ def create_model_info_dict():
     PFM['lv4_grid_file'] = lv4_grid_file
     PFM['lv4_model']     = lv4_model
 
-    PFM['dataSIO_plot_dir'] = '/dataSIO/PFM_Simulations/Plots/'
-    PFM['lv1_archive_his_dir'] = '/dataSIO/PFM_Simulations/Archive/LV1_His/'
-    PFM['lv2_archive_his_dir'] = '/dataSIO/PFM_Simulations/Archive/LV2_His/'
-    PFM['lv3_archive_his_dir'] = '/dataSIO/PFM_Simulations/Archive/LV3_His/'
-    PFM['lv4_archive_his_dir'] = '/dataSIO/PFM_Simulations/Archive/LV4_His/'
-    PFM['log_archive_dir']     = '/dataSIO/PFM_Simulations/Archive/Log/'
-
     if PFM['run_type'] == 'forecast':
-        PFM['hycom_data_dir'] = pfm_dir + 'hycom_data/'
+        PFM['hycom_data_dir'] = pfm_root_dir + 'hycom_data/'
+        PFM['cdip_data_dir'] = pfm_root_dir + 'cdip_data'
     else:
         PFM['hycom_data_dir'] = '/dataSIO/PHM_Simulations/raw_download/hycom_nc/'
+        PFM['cdip_data_dir'] =  '/dataSIO/PHM_Simulations/raw_download/cdip_data'
 
-    # location of the forecast cdip data !!!
-    PFM['cdip_data_dir'] = pfm_dir + 'cdip_data' 
 
     PFM['lv1_tides_file']          = 'ocean_tide.nc'
     PFM['atm_tmp_pckl_file']       = 'atm_tmp_pckl_file.pkl'
@@ -399,12 +418,6 @@ def create_model_info_dict():
     PFM['lv1_executable']          = 'LV3_romsM_INTEL'
     PFM['lv2_executable']          = 'LV3_romsM_INTEL'
     PFM['lv3_executable']          = 'LV3_romsM_INTEL'
-    #PFM['lv1_executable']          = 'LV3_romsM_INTEL_new'
-    #PFM['lv2_executable']          = 'LV3_romsM_INTEL_new'
-    #PFM['lv3_executable']          = 'LV3_romsM_INTEL_new'
-    #PFM['lv1_executable']          = 'romsM_INTEL'
-    #PFM['lv2_executable']          = 'romsM_INTEL'
-    #PFM['lv3_executable']          = 'romsM_INTEL'
 
     if add_tides==1:
         PFM['lv1_adding_tides'] = 'yes'
@@ -446,13 +459,7 @@ def create_model_info_dict():
     
     PFM['lv4_swan_rst_int_hr']     = int( 24 * OP['L4','rst_interval'] )
     PFM['river_pckl_file_full']    = PFM['lv4_forc_dir'] + '/river_Q.pkl'
-    #PFM['river_pkl2']    = PFM['lv4_forc_dir'] + '/river_Q_variety.pkl'
     
-    PFM['lv4_his_web_dir'] = '/projects/www-users/falk/PFM_Forecast/LV4_His/'
-    PFM['lv4_for_web_dir'] = '/dataSIO/PFM_Simulations/Archive/for_web/'
-    PFM['cdip_archive_dir'] = '/dataSIO/PFM_Simulations/Archive/cdip_ncs/'
-    PFM['Q_tjr_climatology'] = 0.27 # m3/s climatology discharge
-
     PFM['modtime0']        = modtime0
     PFM['roms_time_units'] = roms_time_units
     PFM['ds_fmt']          = ds_fmt
@@ -471,20 +478,28 @@ def create_model_info_dict():
     PFM['outputinfo']     = OP
 
     # this is the switch to use restart files
-    # restart_files_dir is where the restart file is saved
-    # and where the restart files are read from.
-    PFM['restart_files_dir'] =  pfm_dir + 'restart_data' 
+    PFM['restart_files_dir'] =  pfm_root_dir + 'restart_data' 
 
-    PFM['lv1_use_restart']         = 1 # 1 == use_restart 
-    PFM['lv2_use_restart']         = 1
-    PFM['lv3_use_restart']         = 1
-    PFM['lv4_use_restart']         = 1
-    PFM['lv4_swan_use_rst']        = 1
-    #PFM['lv4_swan_use_rst']        = 0
+# right now there are restarts from 2024-10-12 to 2024-10-19
+    # using restarts is now automatic based on assuming 20241011
+    # is the very first hindcast day
+    if sim_start_time == '2025010100':
+        use_restart_files = 0
+    else:
+        use_restart_files = 1
 
-    PFM['use_IBWC'] = True # True mean use the new MSS method for TJR river flow. True is operational
-    PFM['use_constant_flow'] = False # True means use constant flow, for debugging purposes. False is operational
-    PFM['nwm_fore_dir'] = '/scratch/PFM_Simulations/nwm_ncs/'
+    if use_restart_files == 0:
+        PFM['lv1_use_restart']         = 0 # use_restart
+        PFM['lv2_use_restart']         = 0
+        PFM['lv3_use_restart']         = 0
+        PFM['lv4_use_restart']         = 0
+        PFM['lv4_swan_use_rst']        = 0
+    else:
+        PFM['lv1_use_restart']         = 1 # use_restart
+        PFM['lv2_use_restart']         = 1
+        PFM['lv3_use_restart']         = 1
+        PFM['lv4_use_restart']         = 1
+        PFM['lv4_swan_use_rst']        = 1
 
     # now do the timing information
     start_time = datetime.now()
@@ -534,34 +549,6 @@ def create_model_info_dict():
         PFM['sim_time_2'] = fetch_time2 + PFM['forecast_days']*timedelta(days=1)
         PFM['sim_start_time'] = PFM['sim_time_1']
         PFM['sim_end_time'] = PFM['sim_time_2']
-        
-        yyyymmddhh   = PFM['sim_start_time'].strftime("%Y%m%d%H")
-        yyyymmddhhmm = PFM['sim_start_time'].strftime("%Y%m%d%H") + '00'
-        end_str = PFM['sim_end_time'].strftime("%Y%m%d%H") + '00'
-        PFM['lv1_his_name'] = 'LV1_ocean_his_' + yyyymmddhhmm + '.nc'
-        PFM['lv1_rst_name'] = 'LV1_ocean_rst_' + yyyymmddhhmm + '_' + end_str + '.nc' 
-        PFM['lv1_his_name_full'] = PFM['lv1_his_dir'] + '/' + PFM['lv1_his_name']
-        PFM['lv1_rst_name_full'] = PFM['restart_files_dir'] + '/' + PFM['lv1_rst_name']
-        PFM['lv2_his_name'] = 'LV2_ocean_his_' + yyyymmddhhmm + '.nc'
-        PFM['lv2_rst_name'] = 'LV2_ocean_rst_' + yyyymmddhhmm + '_' + end_str + '.nc' 
-        PFM['lv2_his_name_full'] = PFM['lv2_his_dir'] + '/' + PFM['lv2_his_name']
-        PFM['lv2_rst_name_full'] = PFM['restart_files_dir'] + '/' + PFM['lv2_rst_name']
-        PFM['lv3_his_name'] = 'LV3_ocean_his_' + yyyymmddhhmm + '.nc'
-        PFM['lv3_rst_name'] = 'LV3_ocean_rst_' + yyyymmddhhmm + '_' + end_str + '.nc' 
-        PFM['lv3_his_name_full'] = PFM['lv3_his_dir'] + '/'  + PFM['lv3_his_name']
-        PFM['lv3_rst_name_full'] = PFM['restart_files_dir'] + '/' + PFM['lv3_rst_name']
-        PFM['lv4_his_name'] = 'LV4_ocean_his_' + yyyymmddhhmm + '.nc'
-        PFM['lv4_rst_name'] = 'LV4_ocean_rst_' + yyyymmddhhmm + '_' + end_str + '.nc' 
-        PFM['lv4_swan_rst_name']  = 'LV4_swan_rst_' + yyyymmddhhmm + '.dat' 
-        web_name = 'web_data_' + yyyymmddhh + '.nc'
-        PFM['lv4_web_name_full'] = PFM['lv4_his_dir'] + '/' + web_name
-        PFM['lv4_his_name_full'] = PFM['lv4_his_dir'] + '/'  + PFM['lv4_his_name']
-        PFM['lv4_rst_name_full'] = PFM['restart_files_dir'] + '/' + PFM['lv4_rst_name']
-        PFM['lv4_swan_rst_name_full'] = PFM['restart_files_dir'] + '/' + PFM['lv4_swan_rst_name']
-    #     # get how often swan files are written. The 0.2 makes sure we check 5 times between 
-    #     # approximate writing times. based on CURRENT (12/13/24) coawst tiling!!! if 
-    #     # tiling changes this needs to change too!
-        PFM['lv4_swan_check_freq_sec'] = int( np.round( 0.2 * OP['L4','rst_interval'] * 2 * 3600 / 2.5 ) ) 
     else:
         fetch_time2 = PFM['sim_time_1']
         
@@ -570,6 +557,11 @@ def create_model_info_dict():
     end_time = fetch_time2 + PFM['forecast_days'] * timedelta(days=1)
     PFM['fore_end_time'] = end_time # the end time of the forecast
 
+    PFM['lv4_swan_check_freq_sec'] = int( np.round( 0.2 * OP['L4','rst_interval'] * 2 * 3600 / 2.5 ) ) 
+    yyyymmdd_1 = PFM['fetch_time'].strftime('%Y%m%d')
+    yyyymmdd_2 = (PFM['fetch_time'] + PFM['forecast_days']*timedelta(days=1) ).strftime('%Y%m%d')
+    PFM['lv4_river_file'] = 'river_' + yyyymmdd_1 + '_' + yyyymmdd_2 + '.nc'
+       
     return PFM
 
 

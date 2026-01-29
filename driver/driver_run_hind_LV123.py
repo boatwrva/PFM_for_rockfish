@@ -4,7 +4,7 @@ import subprocess
 from datetime import datetime, timedelta
 
 sys.path.append('../sdpm_py_util')
-import init_funs as initfuns
+import init_funs_forecast as initfuns
 sys.path.append('../driver')
 
 
@@ -106,12 +106,14 @@ def driver_run_hind_LV123( input_py_full, pkl_fnm ):
 
 
 def driver_run_hind_LV123_edited_by_Matt( pkl_fnm ):
+    print('starting driver_run_hind_LV123!!!')
     t00 = datetime.now()
-    MI = initfuns.get_model_info( pkl_fnm )
+    MI = initfuns.get_model_info( pkl_fnm )    
     nt  = len(MI['start_times_str'])
     nlv = len(MI['levels_to_run'])
     time_tots = [0]*nt
     time_lvls = [[0] * nt for i in range(nlv)]
+
 
     # this is the loop over the different separate simulations
     cnt_t = 0
@@ -123,8 +125,7 @@ def driver_run_hind_LV123_edited_by_Matt( pkl_fnm ):
         MI2 = dict()
         MI2['sim_time_1'] = t1
         MI2['sim_time_2'] = t2
-        MI2['lv4_river_file'] = 'river_' + t1.strftime('%Y%m%d') + '_' + t2.strftime('%Y%m%d') + '.nc'
-    
+        MI2['lv4_river_file'] = 'river_' + t1.strftime('%Y%m%d') + '_' + t2.strftime('%Y%m%d') + '.nc'    
         initfuns.edit_and_save_MI(MI2,pkl_fnm)
         
         # add / change file names to model info

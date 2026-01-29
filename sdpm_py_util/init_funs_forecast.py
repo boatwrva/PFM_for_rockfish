@@ -68,7 +68,6 @@ def get_hindcast_days(t1,tend,dt):
 
     return t1s, t2s
 
-
 def initialize_model(input_py_full,modinfo_pkl_full):
     # this makes the pickle file from the model_input_dictionary
     # first return the dictionary of model info
@@ -80,7 +79,56 @@ def initialize_model(input_py_full,modinfo_pkl_full):
 
     if MINFO['run_type'] == 'hindcast':
         # get list of strings start and end days for the simulation
+        if MINFO['auto_start_hind']:
+            # we are going to auto start the hindcast
+            # this will search for the last his.nc file time stamp
+            # and set the start times appropriately.
+            # start_time_dt is a datetime of the 1st 
+
+            # get last forecast date for each river flow.
+            last_time_dt = {}
+            last_time_dt['ibwc'] = get_last_hindcast_date('ibwc')
+            last_time_dt['nwm']  = get_last_hindcast_date('nwm')
+            last_time_dt['vpfm'] = get_last_hindcast_date('vpfm')
+
+            start_time_dt = {}
+            end_time_dt   = {}
+            for key in last_time_dt:
+                print('the last complete day for the hindcast ', key)
+                print('was ', last_time_dt[key])
+                start_time_dt[key] = last_time_dt[key] + timedelta(days=1)
+                end_time_dt[key] = start_time_dt[key] + MINFO['hindcast_duration'] * timedelta(days=1)
+
+            if MINFO['hind_river_type'] == 'NWM':
+                key = 'nwm'
+            if MINFO['hind_river_type'] == 'vPFM':
+                key = 'vpfm'
+            if MINFO['hind_river_type'] == 'IBWC_raw':
+                key = 'ibwc'
+
+
+            MINFO['sim_start_time'] = start_time_dt[key]
+            MINFO['sim_end_time'] = end_time_dt[key]
+
+            print('we are starting this simulation on ', MINFO['sim_start_time'])
+            print('we are ending this simulation on ', MINFO['sim_end_time'])
+
+            if start_time_dt[key] == datetime(2025,1,1):
+                MINFO['lv1_use_restart']         = 0 # don't use_restart !!!
+                MINFO['lv2_use_restart']         = 0
+                MINFO['lv3_use_restart']         = 0
+                MINFO['lv4_use_restart']         = 0
+                MINFO['lv4_swan_use_rst']        = 0
+            else:
+                MINFO['lv1_use_restart']         = 1 # use_restart
+                MINFO['lv2_use_restart']         = 1
+                MINFO['lv3_use_restart']         = 1
+                MINFO['lv4_use_restart']         = 1
+                MINFO['lv4_swan_use_rst']        = 1
+
+
         t_starts, t_ends = get_hindcast_days(MINFO['sim_start_time'],MINFO['sim_end_time'],MINFO['forecast_days'])
+        
         MINFO['start_times_str'] = t_starts
         MINFO['end_times_str'] = t_ends
 
@@ -370,7 +418,85 @@ def edit_and_save_MI(dict_in,pkl_fnm):
     with open(pkl_fnm,'wb') as fout:
         pickle.dump(PFM,fout, protocol=pickle.HIGHEST_PROTOCOL)
         print('PFM info was edited and resaved')
+
+def get_last_hindcast_date(phm_type):
+    # will check to see what dates are in the archive dirs...
+
+    if phm_type == 'ibwc':
+        dir0 = '/dataSIO/PHM_Simulations/riv_ibwc_raw/'
+    elif phm_type == 'nwm':
+        dir0 = '/dataSIO/PHM_Simulations/riv_nwm/'
+    elif phm_type == 'vpfm':
+        dir0 = '/dataSIO/PHM_Simulations/riv_vpfm/'
+
+    archive_dirs = []
+    for lvl in ['LV1/','LV2/','LV3/','LV4/']:
+        archive_dirs.append(dir0+lvl)
+   
+    t_max = []
+    for dir in archive_dirs:
+        file_names = glob.glob(dir+'*.nc')
+        t_dt = []
+        if len(file_names)<1:
+            t_dt.append( datetime(2024,12,31) )
+        else:
+            for fnm in file_names:
+                t_str = fnm[-15:-3]
+                t_dt.append( datetime.strptime(t_str,'%Y%m%d%H%M') )
+        
+        t_np = np.array(t_dt)
+        t_max.append( np.max(t_np) ) # get the maximum time for all his files in each dir
+
+    t_max = np.array(t_max)
+    if np.all( t_max == t_max[0]):
+        if t_max[0] == datetime(2024,12,31):
+            print('starting PHM from Jan 1, 2025')
+    else:
+        print('different levels have different last history file dates, using the minimum of these to restart...')
+
+    last_time_dt = np.min(t_max) # get the minimum time, this will be the restart time
+
+
+    return last_time_dt
+
+def set_up_for_autostart_hindcast( PFM ):
+    # this function returns the restart time as a datetime object
+
+    # will check to see what dates are in the archive dirs...
+    archive_dirs = [ PFM['hind_lv1_archive_dir'],
+                     PFM['hind_lv2_archive_dir'], 
+                     PFM['hind_lv3_archive_dir'], 
+                     PFM['hind_lv4_archive_dir'] ] 
     
+    t_max = []
+    for dir in archive_dirs:
+        file_names = glob.glob(dir+'*.nc')
+        t_dt = []
+        if len(file_names)<1:
+            t_dt.append( datetime(2024,12,31) )
+        else:
+            for fnm in file_names:
+                t_str = fnm[-15:-3]
+                t_dt.append( datetime.strptime(t_str,'%Y%m%d%H%M') )
+        
+        t_np = np.array(t_dt)
+        t_max.append( np.max(t_np) ) # get the maximum time for all his files in each dir
+
+    t_max = np.array(t_max)
+    if np.all( t_max == t_max[0]):
+        if t_max[0] == datetime(2024,12,31):
+            print('starting PHM from Jan 1, 2025')
+        else:
+            print('all history files in PHM archive dir have the same last time. good.')
+    else:
+        print('history files have different last times, using the minimum of these to restart...')
+
+    t_restart = np.min(t_max) # get the minimum time, this will be the restart time
+    t_restart = t_restart + timedelta(days=1) # now we are on the right day!
+
+    return t_restart
+
+
 def remove_old_swan_rst(pkl_fnm):
     PFM = get_model_info(pkl_fnm)
     PFM['restart_file_dir'] = '/scratch/PFM_Simulations/restart_data'
@@ -434,7 +560,8 @@ def remove_old_swan_hind_restarts(pkl_fnm):
     f_names = glob.glob(PFM['restart_files_dir'] + '/LV4*_???.dat*')
     for fn in f_names:
         t_fn = datetime.strptime(fn[-24:-16],'%Y%m%d')
-        if t_fn <= t_hind - 3*timedelta(days=1):
+        # only remvoe files older than the current hindcast - 14 days.
+        if t_fn <= t_hind - 10*timedelta(days=1):
             os.remove(fn)
             print('the file ', fn, ' was deleted')
 
@@ -478,42 +605,10 @@ def remove_swan_rst_nohour(pkl_fnm):
     else:
         print('...no swan base rst files to delete.')
 
-def remove_swan_rst_incomplete(pkl_fnm):
-    # we no longer call this function. Not needed.
-    # this will delete swan restart files that were made if the simulation didn't complete 
-    PFM = get_model_info(pkl_fnm)
-    fns = glob.glob(PFM['restart_files_dir'] + '/LV4_swan_rst_????????????_000.dat-001')
-    fores = [] # a list with all of the forecast times
-    print('possibly deleting incomplete PFM simulation swan rst files...')
-    if len(fns)>0:
-        for fn in fns:
-            head, tail = os.path.split(fn)
-            yyyymmddhhmm = tail[13:23]
-            fores.append(yyyymmddhhmm)
-
-        unique_fores = list(set(fores))
-        #print(unique_fores)
-        for fn in unique_fores:
-            ftxt = PFM['restart_files_dir'] + '/LV4_swan_rst_' + fn + '00_*.dat-*'
-            all_files = glob.glob(ftxt)
-            num_files = PFM['gridinfo']['L4','np_swan'] * int( (PFM['forecast_days'] / PFM['outputinfo']['L4','rst_interval']) + 1 )
-            #print(num_files)
-            #print(len(all_files))
-            # below breaks things when changing 2.5 to 5.0 day forecasts, vice versa, etc. 
-            if len(all_files) != num_files:
-                print('...the simulation from ' + fn + ' wasnt finsished correctly, need to delete swan rst files.')
-                for rf in all_files:
-                    print('deleting ' + rf)
-                    os.remove(rf)
-            else:
-                print('...there were no incomplete sets of swan rst files from the ' + fn + ' PFM simulation.')
-
 def restart_setup(lvl,pkl_fnm):
 
     PFM = get_model_info(pkl_fnm)
-
     older_than_days = 7.0
-
     PFM_edit = dict()
     fname1,tindex1 = get_restart_file_and_index(lvl,pkl_fnm)
 
@@ -533,30 +628,25 @@ def restart_setup(lvl,pkl_fnm):
         key_rec = 'lv4_nrrec'
         key_file = 'lv4_ini_file'
         remove_swan_rst_nohour(pkl_fnm)
-        #remove_swan_rst_incomplete()
         if PFM['run_type']=='forecast':
             print('removing swan restart files older than now - ' + str(older_than_days) + ' days old...')
             remove_old_restart_files('swan',older_than_days,pkl_fnm)
             # below ensure that swan looks for a previous forecast to find the correct restart data!
+            remove_swan_restarts_eq_foretime(pkl_fnm)
         else:
-            print('removing swan restart files made by previous hindcasts')
-            print('older than 2 days from this hindcast ', PFM['sim_time_1'])
-            remove_old_swan_hind_restarts(pkl_fnm)
+            print('no longer removing swan restart files made by previous hindcasts')
+            #print('older than 2 days from this hindcast ', PFM['sim_time_1'])
+            #remove_old_swan_hind_restarts(pkl_fnm)
 
-        remove_swan_restarts_eq_foretime(pkl_fnm)
         if PFM['lv4_swan_use_rst'] == 1:
             fn0 = PFM['lv4_swan_rst_name'][0:13]
             fnm_swan = get_swan_restart_file_name(pkl_fnm)
-            #yyyymmdd_rm = fname1[14:26]
-            #t_sw = tindex1 * PFM['lv4_swan_rst_int_hr']
-            #t_sw_str = str(t_sw).zfill(3)
             if fnm_swan == None:
                 print('although a swan restart was requested, a restart file could not be found')
                 print('and swan will start swan with IC=ZERO and with the line ...')
                 print(PFM['swan_init_txt_full'])
             else:    
                 swan_txt = 'HOTSTART ' + "'" + fnm_swan + "'"
-                #fn0 + yyyymmdd_rm + '_' + t_sw_str + '.dat'
                 PFM_edit['swan_init_txt_full'] = swan_txt
                 print('we are going to restart swan with the line ...')
                 print(PFM_edit['swan_init_txt_full'])
