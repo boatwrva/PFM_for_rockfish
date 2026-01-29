@@ -1438,6 +1438,7 @@ def plot_his_temps_wuv(fn,It,Iz,sv_fig,lvl,cmn,cmx,pkl_fnm):
         res = '50m'
         res2 = 'h'
     elif lvl == 'LV3':
+        print('using lv3 grid file')
         RMG = grdfuns.roms_grid_to_dict(PFM['lv3_grid_file'])
         res = '10m'
         res2 = 'f'

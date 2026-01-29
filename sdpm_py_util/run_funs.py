@@ -1157,7 +1157,11 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     # the original location was 
     # VARNAME = /home/matt/models/roms/ROMS/External/varinfo.yaml
     # but now it is
-    D['varinfo_full'] = PFM['lv4_coawst_varinfo_full'] 
+    # well - we have to adapt this whether we run coawst or roms 
+    if PFM['lv4_model'] == 'COAWST': 
+        D['varinfo_full'] = PFM['lv4_coawst_varinfo_full'] 
+    if PFM['lv4_model'] == 'ROMS': 
+        D['roms_varinfo_dir'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
 
     # grid info
     D['ncols']  = PFM['gridinfo']['L4','Lm']   # number in x
@@ -1167,11 +1171,23 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     D['nz']     = PFM['stretching']['L4','Nz']     # number of vertical levels: 40
     D['ntilei'] = PFM['gridinfo']['L4','ntilei']
     D['ntilej'] = PFM['gridinfo']['L4','ntilej']
-    D['np_roms'] = PFM['gridinfo']['L4','np_roms']
-    D['np']     = PFM['gridinfo']['L4','np_tot']
-    D['nnodes'] = PFM['gridinfo']['L4','nnodes']
-    D['nd']     = PFM['lv4_nwave_dirs']
-    D['np_swan'] = PFM['gridinfo']['L4','np_swan']
+    ### we defined things slightly differently when allocating nodes for ROMS v SWAN 
+    if PFM['lv4_model'] == 'COAWST':     
+        D['np_roms'] = PFM['gridinfo']['L4','np_roms']
+        D['np']     = PFM['gridinfo']['L4','np_tot']
+        D['nnodes'] = PFM['gridinfo']['L4','nnodes']
+        D['nd']     = PFM['lv4_nwave_dirs']
+        D['np_swan'] = PFM['gridinfo']['L4','np_swan']
+
+    if PFM['lv4_model'] == 'ROMS':
+        D['ncols']  = PFM['gridinfo']['L4','Lm']
+        D['nrows']  = PFM['gridinfo']['L4','Mm']
+        D['nz']     = PFM['stretching']['L4','Nz']     # number of vertical levels: 40
+        D['ntilei'] = PFM['gridinfo']['L4','ntilei']
+        D['ntilej'] = PFM['gridinfo']['L4','ntilej']
+        D['np']     = PFM['gridinfo']['L4','np']
+        D['nnodes'] = PFM['gridinfo']['L4','nnodes']
+        
 
     D['lv4_clm_file'] = PFM['lv4_forc_dir'] + '/' + PFM['lv4_clm_file']
     D['lv4_nud_file'] = PFM['lv4_forc_dir'] + '/' + PFM['lv4_nud_file']
@@ -1180,7 +1196,7 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     # timing info
     dtsec         = PFM['tinfo']['L4','dtsec']
     D['ndtfast']  = PFM['tinfo']['L4','ndtfast']
-#    forecast_days = PFM['tinfo']['L4','forecast_days']  #   forecast_days=2;
+    #     forecast_days = PFM['tinfo']['L4','forecast_days']  #   forecast_days=2;
     forecast_days = PFM['forecast_days']  #   forecast_days=2;
     days_to_run   = forecast_days  #float(Ldir['forecast_days'])
     his_interval  = PFM['outputinfo']['L4','his_interval']
@@ -1265,6 +1281,9 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
 
     if PFM['lv4_model'] == 'ROMS':
         lv4_infile_local   = 'LV4_forecast_run.in'
+        lv4_infile_roms    = lv4_infile_local
+        D['lv4_infile_local']  = lv4_infile_local
+
     if PFM['lv4_model'] == 'COAWST':
         lv4_infile_coupled   = 'LV4_forecast_coupled.in'
         lv4_infile_roms    = 'LV4_forecast_run.in'
@@ -1273,7 +1292,12 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     dot_in_dir   = '.'
     blank_infile = dot_in_dir +'/' +  PFM['lv4_blank_name'] 
     
-    lv4_logfile_local      = 'LV4_forecast.log'
+    # lv4_logfile_local      = 'LV4_forecast.log'
+    if PFM['lv4_model'] == 'COAWST': 
+        lv4_logfile_local      = 'LV4_forecast_ROMS-SWAN.log'
+    if  PFM['lv4_model'] == 'ROMS': 
+        lv4_logfile_local      = 'LV4_forecast_onlyROMS.log'
+    
     # making 'sb' file - sb for swll, sh for rockfish/estuaries
     if PFM['server'] == 'swell': 
         # use slurm so make an .sb file
@@ -1291,40 +1315,42 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
         # and blank file: 
         blank_sbfile = dot_in_dir + '/' + 'BLANK_LV4_openmp.sh'
 
-    
-    D['lv4_infile_local']  = lv4_infile_coupled
-    D['lv4_logfile_local'] = lv4_logfile_local
-#    D['lv4_executable']    = PFM['lv4_run_dir'] + '/' + PFM['lv4_exe_name']
-    D['lv4_executable'] = PFM['executable_dir']  + PFM['lv4_executable']
 
-    
-    blank_coupling = dot_in_dir + '/' + 'LV4_COUPLING_BLANK.in'
-    blank_swan     = dot_in_dir + '/' + 'LV4_SWAN_BLANK.in'
-    # truncation error! SWAN cannot access an infile name that is longer than 20 characters. in theory, you should be running from the LV4_run_dir, so you shouldn't need the prefix 
-    lv4_couple_infile   = D['lv4_run_dir'] + '/' + lv4_infile_coupled
-    lv4_swan_infile_full     =  D['lv4_run_dir'] + '/' + lv4_infile_swan
+    D['lv4_logfile_local'] = lv4_logfile_local
+    D['lv4_executable'] = PFM['executable_dir']  + PFM['lv4_executable']
     lv4_infile = D['lv4_run_dir'] + '/' + lv4_infile_roms
     lv4_sbfile   = D['lv4_run_dir'] + '/' + lv4_sbfile_local
-    D['swan_to_roms'] = PFM['swan_to_roms']
-    D['lv4_roms_infile'] = lv4_infile
-    D['lv4_swan_infile'] = lv4_infile_swan
 
-    D['swan_init_txt'] = PFM['swan_init_txt_full'] # 'ZERO'
-                                                    # or 'HOTSTART PFM['restart_files_dir']+swan_file_name
+    if PFM['lv4_model'] == 'COAWST': 
+        # need coupled in file and swan.in files 
+        D['lv4_infile_local']  = lv4_infile_coupled
 
-   # need to get wave spectra information for swan.in 
+        blank_coupling = dot_in_dir + '/' + 'LV4_COUPLING_BLANK.in'
+        blank_swan     = dot_in_dir + '/' + 'LV4_SWAN_BLANK.in'
+        # truncation error! SWAN cannot access an infile name that is longer than 20 characters. in theory, you should be running from the LV4_run_dir, so you shouldn't need the prefix 
+        lv4_couple_infile   = D['lv4_run_dir'] + '/' + lv4_infile_coupled
+        lv4_swan_infile_full     =  D['lv4_run_dir'] + '/' + lv4_infile_swan
+
+        D['swan_to_roms'] = PFM['swan_to_roms']
+        D['lv4_roms_infile'] = lv4_infile
+        D['lv4_swan_infile'] = lv4_infile_swan
+
+        D['swan_init_txt'] = PFM['swan_init_txt_full'] # 'ZERO' # or 'HOTSTART PFM['restart_files_dir']+swan_file_name
+
+    # need to get wave spectra information for swan.in 
     fn_in = PFM['lv4_forc_dir'] + '/' + PFM['lv4_swan_pckl_file']
     with open(fn_in,'rb') as fp:
         cdip = pickle.load(fp)
 
-    D['freq_min'] = np.min(cdip['f'])    
-    D['freq_max'] = np.max(cdip['f'])    
-    D['freq_num'] = len(cdip['f'])
+    if PFM['lv4_model'] == 'COAWST': 
+        D['freq_min'] = np.min(cdip['f'])    
+        D['freq_max'] = np.max(cdip['f'])    
+        D['freq_num'] = len(cdip['f'])
 
-    D['angle_min'] = np.min(cdip['dir'])    
-    D['angle_max'] = np.max(cdip['dir'])    
-    D['angle_num'] = len(cdip['dir'])
-    D['angle_dangle'] = cdip['dir'][1] - cdip['dir'][0]    
+        D['angle_min'] = np.min(cdip['dir'])    
+        D['angle_max'] = np.max(cdip['dir'])    
+        D['angle_num'] = len(cdip['dir'])
+        D['angle_dangle'] = cdip['dir'][1] - cdip['dir'][0]    
 
 
     print('for this LV4 simulation')
@@ -1357,35 +1383,36 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     f.close()
     f2.close()
 
-# do the coupling .in 
-    f  = open( blank_coupling,'r')
-    f2 = open( lv4_couple_infile,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
-    for line in f:
-        for var in D.keys():
-            if '$'+var+'$' in line:
-                line2 = line.replace('$'+var+'$', str(D[var]))
-                line = line2 # needed because we loop over all "var" for line
-            else:
-                line2 = line
-        f2.write(line2)
+    if PFM['lv4_model'] == 'COAWST': 
+        # do the coupling .in 
+        f  = open( blank_coupling,'r')
+        f2 = open( lv4_couple_infile,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
+        for line in f:
+            for var in D.keys():
+                if '$'+var+'$' in line:
+                    line2 = line.replace('$'+var+'$', str(D[var]))
+                    line = line2 # needed because we loop over all "var" for line
+                else:
+                    line2 = line
+            f2.write(line2)
 
-    f.close()
-    f2.close()
+        f.close()
+        f2.close()
 
-# do the swan .in 
-    f  = open( blank_swan,'r')
-    f2 = open( lv4_swan_infile_full,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
-    for line in f:
-        for var in D.keys():
-            if '$'+var+'$' in line:
-                line2 = line.replace('$'+var+'$', str(D[var]))
-                line = line2 # needed because we loop over all "var" for line
-            else:
-                line2 = line
-        f2.write(line2)
+        # do the swan .in 
+        f  = open( blank_swan,'r')
+        f2 = open( lv4_swan_infile_full,'w')   # change this name to be LV3_forecast_yyyymmddd_HHMMZ.in
+        for line in f:
+            for var in D.keys():
+                if '$'+var+'$' in line:
+                    line2 = line.replace('$'+var+'$', str(D[var]))
+                    line = line2 # needed because we loop over all "var" for line
+                else:
+                    line2 = line
+            f2.write(line2)
 
-    f.close()
-    f2.close()
+        f.close()
+        f2.close()
 
 
     ## create slurb lv4 .sb file  ##########################
@@ -1414,19 +1441,21 @@ def run_slurm_LV4( pkl_fnm , mod_type):
 
     PFM = initfuns.get_model_info(pkl_fnm)
     cwd = os.getcwd()
-    # start the python program that checks for new swan files...
-    fname = PFM['lv4_swan_rst_name'] # this is the root name of the swan file
-                                     # LV4_swan_rst_202412010600.dat-001 etc
-    nfiles = str( PFM['gridinfo']['L4','np_swan'] )
-    # how long one pauses to check for swan restart writes, needs to be 1/4 of how often it writes.
-    swan_check_freq = str( PFM['lv4_swan_check_freq_sec'] )
-#    cmd_list = ['python','-W','ignore','swan_functions.py','check_and_move',fname,swan_check_freq,nfiles,pkl_fnm]
-    cmd_list = ['python','swan_functions.py','check_and_move',fname,swan_check_freq,nfiles,pkl_fnm]
-    os.chdir('../sdpm_py_util')
-    print('starting the background process that looks for modified swan restart files')
-    print('we check for modified files every '+ swan_check_freq + ' s (wall time)')
-    checking = subprocess.Popen(cmd_list)   
-    
+
+    if PFM['lv4_model'] == 'COAWST': 
+        # start the python program that checks for new swan files...
+        fname = PFM['lv4_swan_rst_name'] # this is the root name of the swan file
+                                        # LV4_swan_rst_202412010600.dat-001 etc
+        nfiles = str( PFM['gridinfo']['L4','np_swan'] )
+        # how long one pauses to check for swan restart writes, needs to be 1/4 of how often it writes.
+        swan_check_freq = str( PFM['lv4_swan_check_freq_sec'] )
+        #    cmd_list = ['python','-W','ignore','swan_functions.py','check_and_move',fname,swan_check_freq,nfiles,pkl_fnm]
+        cmd_list = ['python','swan_functions.py','check_and_move',fname,swan_check_freq,nfiles,pkl_fnm]
+        os.chdir('../sdpm_py_util')
+        print('starting the background process that looks for modified swan restart files')
+        print('we check for modified files every '+ swan_check_freq + ' s (wall time)')
+        checking = subprocess.Popen(cmd_list)   
+        
     os.chdir(PFM['lv4_run_dir'])
     print('run_slurm_LV4: current directory is now: ', os.getcwd() )
     
@@ -1441,10 +1470,11 @@ def run_slurm_LV4( pkl_fnm , mod_type):
 
     proc = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
-    time.sleep(int(swan_check_freq))  # Check every dt_sec second
+    if PFM['lv4_model'] == 'COAWST': 
+        time.sleep(int(swan_check_freq))  # Check every dt_sec second
 
-    checking.terminate() # turn off the function that moves swan rst files
-    print('terminated the swan restart file check and move subprocess.')
+        checking.terminate() # turn off the function that moves swan rst files
+        print('terminated the swan restart file check and move subprocess.')
 
     print(proc)
     print('run_slurm_LV4: run command: ', cmd_list )

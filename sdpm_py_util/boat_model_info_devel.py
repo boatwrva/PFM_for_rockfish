@@ -6,7 +6,7 @@ Users should copy this and edit it appropriately in get_model_info.
 
 Victoria edits: 
 Dec 11, 2025: change file locations for project and scratch folders on rockfish 
-Jan 6, 2026: modifying executable name to coawstM; making more adaptable to location change with different folder s
+Jan 24, 2026: modifying executable name to coawstM; making more adaptable to location change with different folders, adapting for SWAN truncation 
 """
  
 import os
@@ -78,7 +78,7 @@ def create_model_info_dict():
     PFM = dict()
 
     # for executable debugging 
-    PFM['testing_exectuable'] = 1 
+    PFM['only_testing_exectuable'] = 1
     
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
         sim_start_time = '2024110100' # the simulation start time is in yyyymmddhh format
@@ -159,11 +159,13 @@ def create_model_info_dict():
     # here is the switch to go from LV4 Roms only to LV4 coawst
     # lv4_model = 'ROMS'
     lv4_model = 'COAWST'
+
+    # set .in files to prepare for ROMS v COAWST 
     if lv4_model == 'ROMS':
-        PFM['lv4_blank_name'] = 'LV4_BLANK_nowaves_norivers.in'
-        PFM['lv4_yaml_file'] = 'LV4_varinfo_nowaves_norivers.yaml'
-        #PFM['lv4_exe_name'] = 'LV4_ocean_nowaves_noriversM'
-        # PFM['lv4_executable'] = 'LV1_oceanM' --> this gets re-written below 
+        # PFM['lv4_blank_name'] = 'LV4_BLANK_nowaves_norivers.in'
+        PFM['lv4_blank_name'] = 'LV4_from_LV3_BLANK.in'
+        # PFM['lv4_yaml_file'] = 'LV4_varinfo_nowaves_norivers.yaml'
+        PFM['lv4_yaml_file'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
                 
     if lv4_model == 'COAWST':
         PFM['lv4_blank_name'] = 'LV4_BLANK.in'
@@ -206,7 +208,7 @@ def create_model_info_dict():
     if lv4_model == 'COAWST':
         # make sure you've made the bot and grd files if you are running SWAN
         filename = 'swan_LV4.bot'
-        if os.path.exists(filename):
+        if os.path.exists(str(pfm_grid_dir)+filename):
             print('We have the swan_LV4.bot file')
         else:
             print('We are making the swan_LV4.bot file...') 
@@ -356,8 +358,8 @@ def create_model_info_dict():
         # need to remember: np_swan will add to np_roms --> np_swan = 36 + ntilei=4 * ntilej=12 = 48 = 84
         # swan = 60, ni=12, nj=37. swan too slow.
         NN['L4','np_swan']   = 1 # was 22 but broke. # making something up for rockfish. swell was: 72    # 60 number of CPUs for swan,
-        NN['L4','ntilei'] = 1 #4 # swell was: 12    # 12 number of tiles in I-direction
-        NN['L4','ntilej'] = 1 # 10 # swell was: 36    # 37 number of tiles in J-direction
+        NN['L4','ntilei'] = 4 # swell was: 12    # 12 number of tiles in I-direction
+        NN['L4','ntilej'] = 10 # swell was: 36    # 37 number of tiles in J-direction
         NN['L4','np_roms'] = NN['L4','ntilei'] * NN['L4','ntilej'] # total number of processors
         NN['L4','np_tot'] = NN['L4','np_swan'] + NN['L4','np_roms']
         NN['L4','nnodes'] = int( NN['L4','np_tot'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm! 
@@ -470,22 +472,19 @@ def create_model_info_dict():
     PFM['lv1_ini_file']            = 'LV1_OCEAN_IC.nc'
     PFM['lv1_bc_file']             = 'LV1_OCEAN_BC.nc'   
     
-    #PFM['lv1_executable']          = 'LV1_oceanM'
-    #PFM['lv2_executable']          = 'LV1_oceanM'
-    #PFM['lv3_executable']          = 'LV1_oceanM'
-    # PFM['lv1_executable']          = 'LV3_romsM_INTEL'
-    # PFM['lv2_executable']          = 'LV3_romsM_INTEL'
-    # PFM['lv3_executable']          = 'LV3_romsM_INTEL'
 
     # currently [June 5 2025] do not have an existing realistic with tides executable ... 
     PFM['lv1_executable']          = 'ROMS_realistic.bin'
     PFM['lv2_executable']          = 'ROMS_realistic.bin'
     PFM['lv3_executable']          = 'ROMS_realistic.bin'
     
+    # here are the executables for lv4 
+
     if PFM['lv4_model'] == 'COAWST': 
         PFM['lv4_executable']          = 'coawstG_IO' # 'coawstM' 
     if PFM['lv4_model'] == 'ROMS': 
-        PFM['lv4_executable']          = 'ROMS_realistic.bin'
+        # PFM['lv4_executable']          = 'ROMS_realistic.bin'
+        PFM['lv4_executable']          = 'romsG' # using debug 
 
     
     print('we got to the executables') 

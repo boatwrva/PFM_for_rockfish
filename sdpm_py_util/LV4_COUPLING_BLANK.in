@@ -69,7 +69,7 @@
 !           weights. This file is created using the code in
 !           Lib/SCRIP_COAWST/scrip_coawst[.exe]
 
-   SCRIP_COAWST_NAME = Projects/Inlet_test/Coupled/scrip_weights_inlet_test.nc
+   SCRIP_COAWST_NAME = scrip_weights_LV4.nc
 
 ! Option 2: THIS OPTION WILL BE REMOVED IN FUTURE VERSIONS.
 !           IF you set "SCRIP_WEIGHT_OPTION = 2", then enter 

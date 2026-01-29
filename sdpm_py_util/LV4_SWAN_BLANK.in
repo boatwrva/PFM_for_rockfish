@@ -62,7 +62,7 @@ PROP BSBT
 &&BLOCK 'COMPGRID' NOHEADER 'LV4_qb.nc'     LAY 4 QB    1.    OUTPUT 20150712.120000 1 HR
 &&BLOCK 'COMPGRID' NOHEADER 'LV4_tm.nc'     LAY 4 TM01  1.    OUTPUT 20150712.120000 1 HR
 
-RESTART '$swan_rst_name_full$' FREE $swan_rst_int_hr$ HR
+! RESTART '$swan_rst_name_full$' FREE $swan_rst_int_hr$ HR
 
 
 COMPUTE NONSTATIONARY $swan_t1_str$ $swan_dt_sec$ SEC $swan_t2_str$
