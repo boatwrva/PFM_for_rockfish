@@ -65,7 +65,7 @@
 !
 ! Application title.
 
-       TITLE = LV4-from-LV3 Forecast ROMS
+       TITLE = LV4fromLV3 Forecast ROMS
 
 ! C-preprocessing Flag.
 

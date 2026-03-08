@@ -60,10 +60,14 @@ def mk_swan_wnd_file(fout,pkl_fnm):
     PFM = initfuns.get_model_info(pkl_fnm)
 
     # only make the wind file if we have generation on
+
+    '''
     if not PFM['swan_wind_wave_generation']:
         print('we are not going to generate wind waves in swan. No need to make .wnd file.')
         print('exiting function.')
-        sys.exit(1)
+        # matt had this exit with error: sys.exit(1)
+        sys.exit(0)
+    '''
 
     RMG = grdfuns.roms_grid_to_dict(PFM['lv4_grid_file'])
     angr = RMG['angle']
@@ -242,9 +246,7 @@ def get_cdip_data(pkl_fnm):
             #print(result)
                 # report the result        
 
-    # archive_cdip = 1
     archive_cdip = PFM['archive_cdip'] 
-    #PFM['cdip_archive_dir'] = '/dataSIO/PFM_Simulations/Archive/cdip_ncs/'
     if archive_cdip == 1:
         print('copying cdip .nc files to archive...')
         dir2 = PFM['cdip_archive_dir']

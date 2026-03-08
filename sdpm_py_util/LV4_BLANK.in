@@ -75,6 +75,14 @@
 
      VARNAME = $varinfo_full$
 
+! New Lines of code to tell what type of input to use!
+! NetCDF I/O library:  [1] Standard NetCDF-3 or NetCDF-4
+!                      [2] Serial/Parallel I/O with PIO library
+
+     INP_LIB =  1
+     OUT_LIB =  1
+
+     
 ! Number of nested grids.
 
       Ngrids =  1

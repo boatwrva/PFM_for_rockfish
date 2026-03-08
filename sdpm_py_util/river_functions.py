@@ -1192,7 +1192,7 @@ def get_tj_observed_flow_qmax(t_riv,pkl_fnm):
         ax.set_xlim(t1,t2)
 
         plt.ylabel('discharge [m3/s]')
-        fn_out = '/scratch/PHM_Simulations/riv_ibwc_raw/LV4_Forecast/Plot/riv_plot.png'
+        fn_out = '/project/vboatwright/PFM_dir/simulations/LV4/Plots/riv_plot.png'
         print('made figure: ', fn_out)
         plt.savefig(fn_out, dpi=300)
 

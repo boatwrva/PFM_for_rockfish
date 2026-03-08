@@ -11,7 +11,10 @@ import netCDF4
 import cftime
 
 sys.path.append('../sdpm_py_util')
-import ocn_functions as ocnfuns
+
+# feb 19, 2026: having trouble with grib2io :(
+# comment out ocn_functions for now
+# import ocn_functions as ocnfuns
 
 
 
@@ -83,6 +86,10 @@ def initialize_model(input_py_full,modinfo_pkl_full):
     print('we create a dictionary of model info')
     MINFO = evaluate_function_from_file( input_py_full , 'create_model_info_dict')
     # now we save the MINFO dict to a pickle file
+
+    print('after evaluate_function_from_file, PFM sim start is: ') 
+    print(MINFO['sim_start_time'])
+
 
     if MINFO['run_type'] == 'hindcast':
         # get list of strings start and end days for the simulation

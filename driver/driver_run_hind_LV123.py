@@ -4,7 +4,8 @@ import subprocess
 from datetime import datetime, timedelta
 
 sys.path.append('../sdpm_py_util')
-import init_funs_forecast as initfuns
+#import init_funs_forecast as initfuns
+import init_funs as initfuns
 sys.path.append('../driver')
 
 

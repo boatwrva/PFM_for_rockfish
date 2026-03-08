@@ -77,16 +77,35 @@ def create_model_info_dict():
    
     PFM = dict()
 
-    # for executable debugging 
-    PFM['only_testing_exectuable'] = 1
+
+    # without depending on root_dir settings, lets set: 
+    d0b = 0.0007
+    PFM['hind_river_type'] = 'IBWC_raw' 
+    hind_archive_dir = '/project/vboatwright/pfm_hindcast_data/archive/'
+
+    PFM['hind_lv1_archive_dir'] = hind_archive_dir + 'LV1/'
+    PFM['hind_lv2_archive_dir'] = hind_archive_dir + 'LV2/'
+    PFM['hind_lv3_archive_dir'] = hind_archive_dir + 'LV3/'
+    PFM['hind_lv4_archive_dir'] = hind_archive_dir + 'LV4/'
+    PFM['hind_river_archive_dir'] = hind_archive_dir + 'river_ncs/'
+
+    PFM['lv1_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
+    PFM['lv2_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
+    PFM['lv3_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
+    PFM['lv4_bottom_roughness'] = d0b # in meters, used in log layer dissipation. z0b in .in file
     
+    PFM['swan_wind_wave_generation'] = False # make or do not make wind waves in swan.
+
+
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
         sim_start_time = '2024110100' # the simulation start time is in yyyymmddhh format
         # 2024101100 is the 1st day of hycom with tides hycom data.
-        sim_end_time   = '2025013100' # this is the very last time of the full simulation
+        sim_end_time   = '2024111300' # this is the very last time of the full simulation
         PFM['forecast_days'] = 1.0 # for now we do 1 day sub simulations
+        PFM['hindcast_duration'] = 12 # how long the hindcast will be in days
         # set the simulation end time. An integer number of days past the start time
         # We will loop over days until we get to this time.
+        PFM['auto_start_hind'] = True
         PFM['sim_start_time'] = datetime.strptime(sim_start_time,'%Y%m%d%H')
         PFM['sim_end_time'] = datetime.strptime(sim_end_time,'%Y%m%d%H')
         PFM['sim_time_1'] = PFM['sim_start_time']
@@ -115,7 +134,14 @@ def create_model_info_dict():
         # PFM['qtj_obs_fname_full'] = '/dataSIO/PHM_Simulations/raw_download/qtj_obs_data/qtj_raw_20200101_20250901.csv'
         PFM['qtj_obs_fname_full'] = forcing_dir+'qtj_obs_data/qtj_raw_20200101_20250901.csv'
         PFM['pb_time_switch'] = datetime(2025,4,1)
-
+        
+        PFM['nwm_dir'] = forcing_dir+'nwm_files/'
+        PFM['dt1_days_ibwc'] = [datetime(2025,1,27),
+                                datetime(2025,2,14),
+                                datetime(2025,3,13),
+                                datetime(2025,3,14)]
+        PFM['dt1_days_nwm'] = []
+        PFM['dt1_days_pfm'] = []
 
     else:
         # hycom_new is the only forecast option
@@ -156,6 +182,8 @@ def create_model_info_dict():
     lv4_run_dir  = lv4_root_dir + 'Run'
     lv4_forc_dir = lv4_root_dir + 'Forc'
 
+
+
     # here is the switch to go from LV4 Roms only to LV4 coawst
     # lv4_model = 'ROMS'
     lv4_model = 'COAWST'
@@ -185,7 +213,7 @@ def create_model_info_dict():
     PFM['lv4_nwave_dirs'] = '11' # used in the ocean.in file. it does NOT match swan
     PFM['lv4_clm_file'] = 'LV4_clm.nc'    
     PFM['lv4_nud_file'] = 'LV4_nud.nc'    
-    PFM['lv4_river_file'] = 'LV4_river.nc'    
+    PFM['lv4_river_file'] = 'LV4_river.nc'    # this is overwritten in the end!!!! 
 
 
     # grid file locations
@@ -252,15 +280,19 @@ def create_model_info_dict():
     PFM['ecmwf_pkl_roms_vars'] = 'ecmwf_roms_vars.pkl'
     PFM['ecmwf_pkl_on_roms_grid'] = 'ecmwf_on_romsgrid.pkl'
 
-# this it the one place where the model time reference is set
+    # this it the one place where the model time reference is set
     modtime0 = datetime(1999,1,1,0,0)
-# see notes in Evernote, Run Log 9, 2020.10.06
+    # see notes in Evernote, Run Log 9, 2020.10.06
     roms_time_units = 'seconds since 1990-01-01 00:00:00'
-# format used for naming day folders, (used? 9/4/24)
+    # format used for naming day folders, (used? 9/4/24)
     ds_fmt = '%Y.%m.%d'
-# number of forecast days (used? 9/4/24)
+    # number of forecast days (used? 9/4/24)
 
-# vertical stretching info for each grid are embedded in a dict
+    print('after setting forecast day and modtime0 info, PFM sim start is: ') 
+    print(PFM['sim_start_time'])
+
+
+    # vertical stretching info for each grid are embedded in a dict
     SS=dict()
     SS['L1','Nz']          = 40
     SS['L1','Vtransform']  = 2                       # transformation equation
@@ -303,7 +335,7 @@ def create_model_info_dict():
 
     print('got to the gridding') 
     
-# gridding info make sure ntilei * ntilej is a multiple of 36. that's how many cores per node on swell
+    # gridding info make sure ntilei * ntilej is a multiple of 36. that's how many cores per node on swell
     NN=dict() 
     NN['L1','Lm']  = 251     # Lm in input file
     NN['L1','Mm']  = 388     # Mm in input file
@@ -357,7 +389,7 @@ def create_model_info_dict():
     if lv4_model == 'COAWST':
         # need to remember: np_swan will add to np_roms --> np_swan = 36 + ntilei=4 * ntilej=12 = 48 = 84
         # swan = 60, ni=12, nj=37. swan too slow.
-        NN['L4','np_swan']   = 1 # was 22 but broke. # making something up for rockfish. swell was: 72    # 60 number of CPUs for swan,
+        NN['L4','np_swan']   = 22 # making something up for rockfish. swell was: 72    # 60 number of CPUs for swan,
         NN['L4','ntilei'] = 4 # swell was: 12    # 12 number of tiles in I-direction
         NN['L4','ntilej'] = 10 # swell was: 36    # 37 number of tiles in J-direction
         NN['L4','np_roms'] = NN['L4','ntilei'] * NN['L4','ntilej'] # total number of processors
@@ -383,20 +415,20 @@ def create_model_info_dict():
     tt['L4','ndtfast'] = 8
     tt['L4','forecast_days'] = PFM['forecast_days']
 
-#  max slurm time for level 1,2,3,4, in minutes
+    #  max slurm time for level 1,2,3,4, in minutes
     lv1_mins = int( np.round( 8.0 * 60.0 * PFM['forecast_days'] / (2.5 * tt['L1','dtsec']) ) )
     lv2_mins = int( np.round( 10.0 * 30.0 * PFM['forecast_days'] / (2.5 * tt['L2','dtsec']) ) )
     lv3_mins = int( np.round( 15.0 * 15.0 * PFM['forecast_days'] / (2.5 * tt['L3','dtsec']) ) )
     lv4_mins = int( np.round( 180.0 * 2.0 * PFM['forecast_days'] / (2.5 * tt['L4','dtsec']) ) )
-#  this 180 minutes is more than it takes for current (12/12/24) tiling and dt=2sec, Tf=2.5 days (135 min).
-#  we add a buffer and we scale linearly with forecast days and dt.   
-# SBATCH -t 0-2:00              # time limit: (D-HH:MM) 
+    #  this 180 minutes is more than it takes for current (12/12/24) tiling and dt=2sec, Tf=2.5 days (135 min).
+    #  we add a buffer and we scale linearly with forecast days and dt.   
+    # SBATCH -t 0-2:00              # time limit: (D-HH:MM) 
     PFM['lv1_max_time_str'] = slurm_format_minutes(lv1_mins)
     PFM['lv2_max_time_str'] = slurm_format_minutes(lv2_mins)
     PFM['lv3_max_time_str'] = slurm_format_minutes(lv3_mins)
     PFM['lv4_max_time_str'] = slurm_format_minutes(lv4_mins)
 
-# output info
+    # output info
     OP = dict()
     OP['L1','his_interval'] = 3600 # how often in sec outut is written to his.nc   
     OP['L1','rst_interval'] = 0.25  # how often in days, a restart file is made.
@@ -453,7 +485,7 @@ def create_model_info_dict():
     PFM['cdip_data_dir'] = forcing_dir + 'cdip_data'
 
     # archive cdip data: 
-    PFM['archive_cdip'] = 0 
+    PFM['archive_cdip'] = 0
     if PFM['archive_cdip'] == 1: 
         # set cdip archive location: 
         PFM['cdip_archive_dir'] = PFM['cdip_data_dir'] + '/archive/' # as of jan 6, 2026: this should not exist 
@@ -481,7 +513,7 @@ def create_model_info_dict():
     # here are the executables for lv4 
 
     if PFM['lv4_model'] == 'COAWST': 
-        PFM['lv4_executable']          = 'coawstG_IO' # 'coawstM' 
+        PFM['lv4_executable']          = 'coawstM_boatdye' # 'coawstM'  
     if PFM['lv4_model'] == 'ROMS': 
         # PFM['lv4_executable']          = 'ROMS_realistic.bin'
         PFM['lv4_executable']          = 'romsG' # using debug 
@@ -554,7 +586,6 @@ def create_model_info_dict():
 
     # default should be to use a restart
     # then, if there is no file for the right day, then it should make an IC file 
-    
 
     # right now there are restarts from 2024-10-12 to 2024-10-19
     PFM['lv1_use_restart']         = 0 # use_restart
@@ -580,6 +611,9 @@ def create_model_info_dict():
 
     PFM['start_time'] = start_time  # this is when we started running PFM
     PFM['utc_time']   = utc_time    # this is when we started PFM in UTC
+
+    print('after defining fetch time and start time, PFM sim start is: ') 
+    print(PFM['sim_start_time'])
 
     if run_type == 'forecast':
         past_6 = hour_utc % 6 # this is the number of hours past 0,6,12,18...
@@ -621,8 +655,16 @@ def create_model_info_dict():
     PFM['fore_end_time'] = end_time # the end time of the forecast
 
     PFM['lv4_swan_check_freq_sec'] = int( np.round( 0.2 * OP['L4','rst_interval'] * 2 * 3600 / 2.5 ) ) 
-
+    yyyymmdd_1 = PFM['fetch_time'].strftime('%Y%m%d')
+    yyyymmdd_2 = (PFM['fetch_time'] + PFM['forecast_days']*timedelta(days=1) ).strftime('%Y%m%d')
+    PFM['lv4_river_file'] = 'river_' + yyyymmdd_1 + '_' + yyyymmdd_2 + '.nc'
        
+    print('we finished setting all the variables for PFM ')
+
+
+    print('after setting vars, PFM sim start is: ') 
+    print(PFM['sim_start_time'])
+
     return PFM
 
 
