@@ -135,6 +135,12 @@ def  make_LV1_dotin_and_exec( pkl_fnm , mod_type ):
         lv1_sbfile_local = 'LV1_openmp.sh'
         # and blank file: 
         blank_sbfile = dot_in_dir + '/' + 'BLANK_LV1_openmp.sh'
+
+    if PFM['server'] == 'expanse': 
+        # using slurm again! 
+        lv1_sbfile_local  = 'LV1_SLURM.sb'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV1_SLURM.sh'
     
     D['lv1_infile_local']  = lv1_infile_local
     D['lv1_logfile_local'] = lv1_logfile_local
@@ -383,6 +389,9 @@ def run_slurm_LV1( pkl_fnm , mod_type):
     if PFM['server'] == 'rockfish': 
         # use bash 
         cmd_list = ['bash','LV1_openmp.sh'] 
+    if PFM['server'] == 'expanse': 
+        # use slurm and therefore sbatch 
+        cmd_list = ['sbatch', '--wait' ,'LV1_SLURM.sb']
 
     proc = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print(proc)
@@ -513,6 +522,11 @@ def  make_LV2_dotin_and_exec( pkl_fnm ):
         # and blank file: 
         blank_sbfile = dot_in_dir + '/' + 'BLANK_LV2_openmp.sh'
 
+    if PFM['server'] == 'expanse': 
+        # using slurm again! 
+        lv1_sbfile_local  = 'LV2_SLURM.sb'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV2_SLURM.sh'
 
     D['lv2_infile_local']  = lv2_infile_local
     D['lv2_logfile_local'] = lv2_logfile_local
@@ -754,6 +768,9 @@ def run_slurm_LV2( pkl_fnm , mod_type ):
     if PFM['server'] == 'rockfish': 
         # use bash 
         cmd_list = ['bash','LV2_openmp.sh'] 
+    if PFM['server'] == 'expanse': 
+        # use slurm and therefore sbatch 
+        cmd_list = ['sbatch', '--wait' ,'LV2_SLURM.sb']
 
     print('run_slurm_LV2: run command: ', cmd_list )
     proc = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -887,6 +904,12 @@ def  make_LV3_dotin_and_exec( pkl_fnm ):
         lv3_sbfile_local = 'LV3_openmp.sh'
         # and blank file: 
         blank_sbfile = dot_in_dir + '/' + 'BLANK_LV3_openmp.sh'
+
+    if PFM['server'] == 'expanse': 
+        # using slurm again! 
+        lv1_sbfile_local  = 'LV3_SLURM.sb'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV3_SLURM.sh'
         
     D['lv3_infile_local']  = lv3_infile_local
     D['lv3_logfile_local'] = lv3_logfile_local
@@ -1120,6 +1143,10 @@ def run_slurm_LV3( pkl_fnm , mod_type ):
     if PFM['server'] == 'rockfish': 
         # use bash 
         cmd_list = ['bash','LV3_openmp.sh'] 
+    if PFM['server'] == 'expanse': 
+        # use slurm and therefore sbatch 
+        cmd_list = ['sbatch', '--wait' ,'LV3_SLURM.sb']
+
 
     print('run_slurm_LV3: run command: ', cmd_list )
     proc = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1344,6 +1371,12 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
         # and blank file: 
         blank_sbfile = dot_in_dir + '/' + 'BLANK_LV4_openmp.sh'
 
+    if PFM['server'] == 'expanse': 
+        # using slurm again! 
+        lv1_sbfile_local  = 'LV4_SLURM.sb'
+        # and blank file: 
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV4_SLURM.sh'
+
 
     D['lv4_logfile_local'] = lv4_logfile_local
     D['lv4_executable'] = PFM['executable_dir']  + PFM['lv4_executable']
@@ -1509,6 +1542,10 @@ def run_slurm_LV4( pkl_fnm , mod_type):
     if PFM['server'] == 'rockfish': 
         # use bash 
         cmd_list = ['bash','LV4_openmp.sh'] 
+
+    if PFM['server'] == 'expanse': 
+        # use slurm and therefore sbatch 
+        cmd_list = ['sbatch', '--wait' ,'LV4_SLURM.sb']
 
     proc = subprocess.run(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     

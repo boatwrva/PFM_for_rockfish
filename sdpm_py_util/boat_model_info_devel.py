@@ -126,7 +126,7 @@ def create_model_info_dict():
         PFM['atm_dt_hr'] = 3
 
         # set server
-        PFM['server'] = 'rockfish'
+        PFM['server'] = 'expanse'
         
         # old version? 
         # PFM['qtj_obs_fname_full'] = pfm_root_dir + 'river_data/IBWC_Qtrje_custom.csv'
