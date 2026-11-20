@@ -462,14 +462,14 @@ LtracerSponge == F F                            ! temperature, salinity, inert
 ! point Sources/Sinks (like river runoff transport) and mass point
 ! Sources/Sinks (like volume vertical influx), [1:Ngrids].
 
-      LuvSrc == F                          ! horizontal momentum transport
-       LwSrc == F                          ! volume vertical influx
+      LuvSrc == T                          ! horizontal momentum transport
+       LwSrc == T                          ! volume vertical influx
 
 ! Logical switches (TRUE/FALSE) to activate tracers point Sources/Sinks
 ! (like river runoff) and to specify which tracer variables to consider:
 ! [1:NAT+NPT,Ngrids].  See glossary below for details.
 
-  LtracerSrc == F F                        ! temperature, salinity, inert
+  LtracerSrc == T T                        ! temperature, salinity, inert
 
 ! Logical switches (TRUE/FALSE) to read and process climatology fields.
 ! See glossary below for details.
@@ -488,7 +488,7 @@ LtracerSponge == F F                            ! temperature, salinity, inert
  LnudgeM2CLM == F                          ! 2D momentum
  LnudgeM3CLM == F                          ! 3D momentum
 
-  LnudgeTCLM == F F T T T                  ! temperature, salinity, inert
+  LnudgeTCLM == F F                        ! temperature, salinity, inert
 
 ! Starting (DstrS) and ending (DendS) day for adjoint sensitivity forcing.
 ! DstrS must be less or equal to DendS. If both values are zero, their
@@ -1110,8 +1110,8 @@ PIO_I2C_Preq = 65                 ! Maximum pending I2C requests
 
 ! Input Sources/Sinks forcing (like river runoff) file name.
 
-     SSFNAME == roms_rivers.nc
-
+     SSFNAME == $lv4_river_file$
+     
 ! Input tidal forcing file name.
 
     TIDENAME == roms_tides.nc

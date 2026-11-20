@@ -34,6 +34,8 @@
 #define UV_C4VADVECTION
 #define MIX_S_UV
 
+#define UV_PSOURCE
+#define TS_PSOURCE
 
 #define RADIATION_2D
 

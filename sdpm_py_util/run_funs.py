@@ -43,8 +43,8 @@ def  make_LV1_dotin_and_exec( pkl_fnm , mod_type ):
     # VARNAME = /home/matt/models/roms/ROMS/External/varinfo.yaml
     # but now it is
     # D['roms_varinfo_dir'] = PFM['lv1_run_dir'] +  '/LV1_varinfo.yaml'  ## FIX!
-    # point to the varinfo.yaml set in boat_model_info_devel.py
-    D['roms_varinfo_dir'] = PFM['lv4_yaml_file'] 
+    # this is what will run LV1 ROMS. not used (yet) in expanse settings
+    D['roms_varinfo_dir'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
     
     # grid info
     D['ncols']  = PFM['gridinfo']['L1','Lm']
@@ -1190,8 +1190,8 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
     if PFM['lv4_model'] == 'COAWST': 
         D['varinfo_full'] = PFM['lv4_coawst_varinfo_full'] 
     if PFM['lv4_model'] == 'ROMS': 
-        D['roms_varinfo_dir'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
-
+        D['roms_varinfo_dir'] = PFM['lv4_yaml_file']
+        
     # grid info
     D['ncols']  = PFM['gridinfo']['L4','Lm']   # number in x
     D['nrows']  = PFM['gridinfo']['L4','Mm']   # number in y
