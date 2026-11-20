@@ -91,6 +91,7 @@ def driver_run_hind_LV123( input_py_full, pkl_fnm ):
         MI2['lv1_use_restart'] = 1
         MI2['lv2_use_restart'] = 1
         MI2['lv3_use_restart'] = 1
+        MI2['lv4_use_restart'] = 1
         initfuns.edit_and_save_MI(MI2,pkl_fnm)
         print('done with a 1 day LV hindcast, going to the next day.\n')
         #sys.exit("exiting for now.")

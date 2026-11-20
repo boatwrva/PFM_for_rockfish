@@ -912,9 +912,17 @@ def run_hind_LV4(t1str,pkl_fnm):
             print(t2-t1)
             dt_sw = []
             dt_sw.append(t2-t1)
-
-
-    # now, not skipping these parts: 
+            
+            
+    # if this is not the first segment, point LV4 at the previous restart file (sets lv4_nrrec, lv4_ini_file)
+    if MI['lv4_use_restart'] == 1 and MI['lv4_model'] == 'ROMS':
+        os.chdir('../sdpm_py_util')
+        cmd_list = ['python','-u','init_funs.py','restart_setup_roms_only','LV4',pkl_fnm]
+        ret_rs = subprocess.run(cmd_list)
+        os.chdir('../driver')
+        if ret_rs.returncode != 0:
+            print('restart setup failed, aborting')
+            sys.exit(1)
 
     
     # make all of the dotins

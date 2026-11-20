@@ -393,8 +393,8 @@ def create_model_info_dict():
 
     if model_location == 'LPL': 
         print('LPL grid coordinates for LV4 applied')
-        NN['L3','Lm']  = 480     # Lm in input file
-        NN['L3','Mm']  = 907     # Mm in input file
+        NN['L4','Lm']  = 480     # Lm in input file
+        NN['L4','Mm']  = 907     # Mm in input file
 
     if model_location == 'SDTJ':     
         print('SD - TJ grid coordinates for LV4 applied')
@@ -439,9 +439,16 @@ def create_model_info_dict():
     lv1_mins = int( np.round( 8.0 * 60.0 * PFM['forecast_days'] / (2.5 * tt['L1','dtsec']) ) )
     lv2_mins = int( np.round( 10.0 * 30.0 * PFM['forecast_days'] / (2.5 * tt['L2','dtsec']) ) )
     lv3_mins = int( np.round( 15.0 * 15.0 * PFM['forecast_days'] / (2.5 * tt['L3','dtsec']) ) )
-    lv4_mins = int( np.round( 180.0 * 2.0 * PFM['forecast_days'] / (2.5 * tt['L4','dtsec']) ) )
-    #  this 180 minutes is more than it takes for current (12/12/24) tiling and dt=2sec, Tf=2.5 days (135 min).
+    # from swell PFM: this 180 minutes is more than it takes for current (12/12/24) tiling and dt=2sec, Tf=2.5 days (135 min).
     #  we add a buffer and we scale linearly with forecast days and dt.   
+    # lv4_mins = int( np.round( 180.0 * 2.0 * PFM['forecast_days'] / (2.5 * tt['L4','dtsec']) ) )
+    # for expanse and ecb, we assume it will take longer - 
+    #  LV4 walltime: set minutes of wall clock per simulated day explicitly, then calibrate from your first run
+    # (look at the end of the ROMS log, then use ~1.3x the measured time). Slurm's max on shared/compute is 48 h.
+    lv4_min_per_sim_day = 120.0
+    lv4_mins = int( np.round( lv4_min_per_sim_day * PFM['forecast_days'] ) )
+    lv4_mins = min( lv4_mins, 48*60 )
+
     # SBATCH -t 0-2:00              # time limit: (D-HH:MM) 
     PFM['lv1_max_time_str'] = slurm_format_minutes(lv1_mins)
     PFM['lv2_max_time_str'] = slurm_format_minutes(lv2_mins)

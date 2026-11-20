@@ -43,9 +43,9 @@ def  make_LV1_dotin_and_exec( pkl_fnm , mod_type ):
     # VARNAME = /home/matt/models/roms/ROMS/External/varinfo.yaml
     # but now it is
     # D['roms_varinfo_dir'] = PFM['lv1_run_dir'] +  '/LV1_varinfo.yaml'  ## FIX!
-    # and changing again to point to the ROMS varinfo.yaml 
-    D['roms_varinfo_dir'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
-
+    # point to the varinfo.yaml set in boat_model_info_devel.py
+    D['roms_varinfo_dir'] = PFM['lv4_yaml_file'] 
+    
     # grid info
     D['ncols']  = PFM['gridinfo']['L1','Lm']
     D['nrows']  = PFM['gridinfo']['L1','Mm']
@@ -524,7 +524,7 @@ def  make_LV2_dotin_and_exec( pkl_fnm ):
 
     if PFM['server'] == 'expanse': 
         # using slurm again! 
-        lv1_sbfile_local  = 'LV2_SLURM.sb'
+        lv2_sbfile_local  = 'LV2_SLURM.sb'
         # and blank file: 
         blank_sbfile = dot_in_dir + '/' + 'BLANK_LV2_SLURM.sh'
 
@@ -907,7 +907,7 @@ def  make_LV3_dotin_and_exec( pkl_fnm ):
 
     if PFM['server'] == 'expanse': 
         # using slurm again! 
-        lv1_sbfile_local  = 'LV3_SLURM.sb'
+        lv3_sbfile_local  = 'LV3_SLURM.sb'
         # and blank file: 
         blank_sbfile = dot_in_dir + '/' + 'BLANK_LV3_SLURM.sh'
         
@@ -1373,9 +1373,9 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
 
     if PFM['server'] == 'expanse': 
         # using slurm again! 
-        lv1_sbfile_local  = 'LV4_SLURM.sb'
+        lv4_sbfile_local  = 'LV4_SLURM.sb'
         # and blank file: 
-        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV4_SLURM.sh'
+        blank_sbfile = dot_in_dir + '/' + 'BLANK_LV4_SLURM.sb'
 
 
     D['lv4_logfile_local'] = lv4_logfile_local
@@ -1400,11 +1400,11 @@ def make_LV4_coawst_dotins_dotsb(pkl_fnm,mod_type):
         D['swan_init_txt'] = PFM['swan_init_txt_full'] # 'ZERO' # or 'HOTSTART PFM['restart_files_dir']+swan_file_name
 
     # need to get wave spectra information for swan.in 
-    fn_in = PFM['lv4_forc_dir'] + '/' + PFM['lv4_swan_pckl_file']
-    with open(fn_in,'rb') as fp:
-        cdip = pickle.load(fp)
-
     if PFM['lv4_model'] == 'COAWST': 
+        fn_in = PFM['lv4_forc_dir'] + '/' + PFM['lv4_swan_pckl_file']
+        with open(fn_in,'rb') as fp:
+            cdip = pickle.load(fp)
+
         D['freq_min'] = np.min(cdip['f'])    
         D['freq_max'] = np.max(cdip['f'])    
         D['freq_num'] = len(cdip['f'])

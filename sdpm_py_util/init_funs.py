@@ -634,6 +634,19 @@ def restart_setup(lvl,pkl_fnm):
     PFM_edit[key_file] = fname1
     edit_and_save_MI(PFM_edit,pkl_fnm)
 
+def restart_setup_roms_only(lvl,pkl_fnm):
+    """Restart setup for a ROMS-only level: no swan calls, no age-based file deletion."""
+    PFM = get_model_info(pkl_fnm)
+    fname1,tindex1 = get_restart_file_and_index(lvl,pkl_fnm)
+    if tindex1 == -99:
+        print('ERROR: no restart record found for ' + lvl + ' at ' + str(PFM['sim_time_1']))
+        sys.exit(1)
+    key = lvl.lower()
+    edit_and_save_MI({key + '_nrrec': tindex1 + 1,    # +1: ROMS records start at 1, python at 0
+                      key + '_ini_file': fname1}, pkl_fnm)
+    print('restart set: ' + fname1 + ', NRREC = ' + str(tindex1 + 1))
+
+
 def update_PFM_pkl(t1str,lvl,pkl_fnm):
     PFM = get_model_info(pkl_fnm)
     tstart = datetime.strptime(t1str,'%Y%m%d%H')
