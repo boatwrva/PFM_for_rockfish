@@ -104,9 +104,10 @@ def create_model_info_dict():
 
 
     if run_type == 'hindcast': # note hycom with tides starts on 2024-10-10 1200...
-        sim_start_time = '2024110100' # the simulation start time is in yyyymmddhh format
-        # 2024101100 is the 1st day of hycom with tides hycom data.
-        sim_end_time   = '2024111300' # this is the very last time of the full simulation
+        # starting from LPL LV4 BCs and ICs from Xioadong's runs
+        sim_start_time = '2019090100' # the simulation start time is in yyyymmddhh format
+        # note: 2024101100 is the 1st day of hycom with tides hycom data.
+        sim_end_time   = '2019090200' # this is the very last time of the full simulation
         PFM['forecast_days'] = 1.0 # for now we do 1 day sub simulations
         PFM['hindcast_duration'] = 12 # how long the hindcast will be in days
         # set the simulation end time. An integer number of days past the start time
@@ -191,8 +192,8 @@ def create_model_info_dict():
 
 
     # here is the switch to go from LV4 Roms only to LV4 coawst
-    # lv4_model = 'ROMS'
-    lv4_model = 'COAWST'
+    lv4_model = 'ROMS'
+    # lv4_model = 'COAWST'
 
     # set .in files to prepare for ROMS v COAWST 
     if lv4_model == 'ROMS':
@@ -210,14 +211,14 @@ def create_model_info_dict():
         PFM['lv4_yaml_file'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
         PFM['lv4_blank_swan_name'] = 'LV4_SWAN_BLANK.in'
         PFM['lv4_coupling_name'] = 'LV4_COUPLING_BLANK.in'
+        # lv4_coawst_varinfo_full = lv4_run_dir + '/LV4_coawst_varinfo.dat'
+        # i didn't have this file. it exists in the COAWSTv38/COAWST/ROMS/External/varinfo.dat --> copied it to LV4/Run/
+        lv4_coawst_varinfo_full = lv4_run_dir + '/roms_coawst_varinfo.dat'
+        PFM['lv4_coawst_varinfo_full'] = lv4_coawst_varinfo_full
 
 
     lv4_his_dir  = lv4_root_dir + 'His'
     lv4_plot_dir = lv4_root_dir + 'Plots'          
-    # lv4_coawst_varinfo_full = lv4_run_dir + '/LV4_coawst_varinfo.dat'
-    # i didn't have this file. it exists in the COAWSTv38/COAWST/ROMS/External/varinfo.dat --> copied it to LV4/Run/
-    lv4_coawst_varinfo_full = lv4_run_dir + '/roms_coawst_varinfo.dat'
-    PFM['lv4_coawst_varinfo_full'] = lv4_coawst_varinfo_full
     PFM['lv4_nwave_dirs'] = '11' # used in the ocean.in file. it does NOT match swan
     PFM['lv4_clm_file'] = 'LV4_clm.nc'    
     PFM['lv4_nud_file'] = 'LV4_nud.nc'    
@@ -326,7 +327,11 @@ def create_model_info_dict():
     SS['L3','TCLINE']      = 50.0                    # critical depth (m)
     SS['L3','hc']          = 50.0 
 
-    SS['L4','Nz']          = 10
+    if model_location == 'LPL': 
+        SS['L4','Nz']          = 15
+    if model_location == 'SDTJ': 
+        SS['L4','Nz']          = 10
+
     SS['L4','Vtransform']  = 2                       # transformation equation
     SS['L4','Vstretching'] = 4                       # stretching function
     SS['L4','THETA_S']     = 4.5                     # surface stretching parameter
@@ -368,12 +373,12 @@ def create_model_info_dict():
     NN['L2','nnodes'] = int( NN['L2','np'] / 36 )  # 3 number of nodes to be used.  not for .in file but for slurm!
 
     if model_location == 'LPL': 
-        print('LPL grid coordinates')
+        print('LPL grid coordinates for LV3 applied')
         NN['L3','Lm']  = 249     # Lm in input file
         NN['L3','Mm']  = 474     # Mm in input file
 
     if model_location == 'SDTJ':     
-        print('SD - TJ grid coordinates')
+        print('SD - TJ grid coordinates for LV3 applied')
         NN['L3','Lm']  = 249     # Lm in input file
         NN['L3','Mm']  = 411     # Mm in input file
 
@@ -386,9 +391,16 @@ def create_model_info_dict():
     NN['L3','np'] = NN['L3','ntilei'] * NN['L3','ntilej'] # total number of processors
     NN['L3','nnodes'] = int( NN['L3','np'] / 36  )  # 3 number of nodes to be used.  not for .infile but for slurm!
 
-    NN['L4','Lm']  = 484     # Lm in input file
-    NN['L4','Mm']  = 1139     # Mm in input file
-    
+    if model_location == 'LPL': 
+        print('LPL grid coordinates for LV4 applied')
+        NN['L3','Lm']  = 480     # Lm in input file
+        NN['L3','Mm']  = 907     # Mm in input file
+
+    if model_location == 'SDTJ':     
+        print('SD - TJ grid coordinates for LV4 applied')
+        NN['L4','Lm']  = 484     # Lm in input file
+        NN['L4','Mm']  = 1139     # Mm in input file
+        
     if lv4_model == 'ROMS':
         NN['L4','ntilei'] = 4 # swell was: 14    # 6 number of tiles in I-direction
         NN['L4','ntilej'] = 10 # swell was: 36    # 18 number of tiles in J-direction
@@ -595,7 +607,6 @@ def create_model_info_dict():
     # default should be to use a restart
     # then, if there is no file for the right day, then it should make an IC file 
 
-    # right now there are restarts from 2024-10-12 to 2024-10-19
     PFM['lv1_use_restart']         = 0 # use_restart
     PFM['lv2_use_restart']         = 0
     PFM['lv3_use_restart']         = 0
