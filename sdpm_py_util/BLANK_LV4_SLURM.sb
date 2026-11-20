@@ -1,42 +1,33 @@
 #!/bin/bash
+# Expanse version of the LV4 run script template.
+# The dollar-sign placeholders below are filled in by make_LV4_coawst_dotins_dotsb() in run_funs.py.
+#
+# All #SBATCH lines must come BEFORE the first real command, or Slurm ignores them.
 
-# job name
-#SBATCH --job-name=LV4_FORECAST
-
-# slurm job output file
+#SBATCH --job-name=LV4_ROMS
 #SBATCH --output=%j.out
-
-# partition of nodes to use
-#SBATCH --partition=$partition$
-
-# number of MPI tasks
+#SBATCH --account=sdu151
+#SBATCH --partition=shared
+#SBATCH --nodes=1
 #SBATCH --ntasks=$np$
-
-# number of cpus for a task
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=128G
-
-# number of nodes to use
-#SBATCH --nodes=$nnodes$
-
-# number of tasks per node
-#SBATCH --ntasks-per-node=36
-
-# max time for the simulation, D-HH:MM
+#SBATCH --mem-per-cpu=2G
 #SBATCH --time=$lv4_max_time$
 
-
+# Reproduce the environment you used when the upwelling test ran.
+# Tip: in that working shell run `module list` and make this list match it.
 module purge
-
-module load gcc/11.2.0
-module load openmpi/gcc/64/4.1.5
-module load hdf5/1.14.3
-module load netcdf/mpicc/4.8.1
+module load cpu
 module load slurm
-
-export LD_LIBRARY_PATH=/cm/shared/apps/netcdf/gcc/64/4.8.1/lib:$LD_LIBRARY_PATH
+module load gcc/10.2.0
+module load openmpi/4.1.1
+module load netcdf-c/4.8.1
+module load netcdf-fortran/4.5.3
 
 MYAPP=$lv4_executable$
 
-mpirun -v -np $np$  $MYAPP $lv4_infile_local$  > $lv4_logfile_local$
+echo "job $SLURM_JOB_ID on $(hostname), $SLURM_NTASKS tasks, started $(date)"
 
+mpirun -np $np$ $MYAPP $lv4_infile_local$ > $lv4_logfile_local$ 2>&1
+
+echo "finished $(date)"

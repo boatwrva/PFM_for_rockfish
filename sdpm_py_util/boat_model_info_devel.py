@@ -64,10 +64,15 @@ def create_model_info_dict():
     pfm_dir = '/home/vboatwright/boat_roms/PFM_dir/simulations/'
     forcing_dir = '/home/vboatwright/boat_roms/PFM_dir/model_forcing/'
     driver_dir = '/home/vboatwright/boat_roms/PFM_dir/PFM_for_rockfish/driver/'
-    '''
+    # rockfish dirs
     pfm_dir = '/project/vboatwright/PFM_dir/simulations/'
     forcing_dir = '/project/vboatwright/pfm_hindcast_data/model_forcing/' 
     driver_dir = '/project/vboatwright/PFM_dir/PFM_for_rockfish/driver/'
+    '''
+    # expanse dirs 
+    pfm_dir = '/expanse/lustre/projects/sdu151/vboatwright/boat_roms/PFM_dir/simulations/'
+    forcing_dir = '/expanse/lustre/projects/sdu151/vboatwright/boat_roms/PFM_dir/model_forcing/'
+    driver_dir = '/expanse/lustre/projects/sdu151/vboatwright/boat_roms/PFM_for_rockfish/driver/'
     
     if run_type == 'forecast':
         # this exists now but be careful because it shouldnt be used atm 
@@ -82,6 +87,7 @@ def create_model_info_dict():
     d0b = 0.0007
     PFM['hind_river_type'] = 'IBWC_raw' 
     hind_archive_dir = '/project/vboatwright/pfm_hindcast_data/archive/'
+    hind_archive_dir = '/expanse/lustre/projects/sdu151/vboatwright/boat_roms/PFM_dir/archive/'
 
     PFM['hind_lv1_archive_dir'] = hind_archive_dir + 'LV1/'
     PFM['hind_lv2_archive_dir'] = hind_archive_dir + 'LV2/'
@@ -156,7 +162,7 @@ def create_model_info_dict():
     lv2_root_dir =  pfm_root_dir +  'LV2/'
 
     # set run site: either 'SDTJ' or 'LPL'
-    model_location = 'SDTJ' 
+    model_location = 'LPL' 
     if model_location == 'LPL': 
         lv3_root_dir =  pfm_root_dir +  'LV3/'
     if model_location == 'SDTJ': 
@@ -193,7 +199,9 @@ def create_model_info_dict():
         # PFM['lv4_blank_name'] = 'LV4_BLANK_nowaves_norivers.in'
         PFM['lv4_blank_name'] = 'LV4_from_LV3_BLANK.in'
         # PFM['lv4_yaml_file'] = 'LV4_varinfo_nowaves_norivers.yaml'
-        PFM['lv4_yaml_file'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
+        # PFM['lv4_yaml_file'] = '/home/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
+        # ECB yaml file on expanse from develop branch of roms: 
+        PFM['lv4_yaml_file'] = '/expanse/lustre/projects/sdu151/vboatwright/boat_roms/roms/ROMS/External/varinfo.yaml'
                 
     if lv4_model == 'COAWST':
         PFM['lv4_blank_name'] = 'LV4_BLANK.in'
@@ -658,7 +666,14 @@ def create_model_info_dict():
     yyyymmdd_1 = PFM['fetch_time'].strftime('%Y%m%d')
     yyyymmdd_2 = (PFM['fetch_time'] + PFM['forecast_days']*timedelta(days=1) ).strftime('%Y%m%d')
     PFM['lv4_river_file'] = 'river_' + yyyymmdd_1 + '_' + yyyymmdd_2 + '.nc'
-       
+
+    # RESET ALL THE FORCING FILES! 
+    PFM['lv4_bc_file']    = 'BC_LV4_LPL_20192020_hp01.nc'
+    PFM['lv4_ini_file']   = 'IC_LV4_LPL_20190601_hplus.nc'
+    PFM['lv4_clm_file']   = 'ocean_clm_LPL_20200930.nc'
+    PFM['lv4_nud_file']   = 'ocean_nudcoef_LPL_10day.nc'
+    PFM['lv4_river_file'] = 'river_6river_utc_20190601_20201001.nc'
+
     print('we finished setting all the variables for PFM ')
 
 
